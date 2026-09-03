@@ -6,6 +6,6 @@ export class Preloader extends Scene {
   }
 
   create() {
-    this.scene.start("RaidScene");
+    this.scene.start("StashScene");
   }
 }

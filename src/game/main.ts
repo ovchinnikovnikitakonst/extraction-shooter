@@ -2,6 +2,7 @@ import { AUTO, Game } from "phaser";
 import { Boot } from "./scenes/Boot";
 import { Preloader } from "./scenes/Preloader";
 import { RaidScene } from "./scenes/RaidScene";
+import { StashScene } from "./scenes/StashScene";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
@@ -17,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
     },
   },
 
-  scene: [Boot, Preloader, RaidScene],
+  scene: [Boot, Preloader, StashScene, RaidScene],
 };
 
 const StartGame = (parent: string) => {

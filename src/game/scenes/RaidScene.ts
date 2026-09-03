@@ -17,6 +17,9 @@ import { updateEnemy } from "../systems/updateEnemy";
 import { shootBullet } from "../systems/shootBullet";
 import { setupBulletEnemyOverlap } from "../systems/setupBulletEnemyOverlap";
 import { setupEnemyPlayerOverlap } from "../systems/setupEnemyPlayerOverlap";
+import type { RaidStatus } from "../systems/raidState";
+import { showRaidResult } from "../ui/showRaidResult";
+import { addScrapToStash, getStashState } from "../systems/stashState";
 
 import { createPlayerState } from "../systems/playerState";
 
@@ -34,10 +37,9 @@ export class RaidScene extends Scene {
   private playerState = createPlayerState(RAID_CONFIG.player.hp);
 
   private lastEnemyHitAt = 0;
-  private playerDead = false;
+  private raidStatus: RaidStatus = "playing";
 
   private healthText!: Phaser.GameObjects.Text;
-  private deathText!: Phaser.GameObjects.Text;
   private lootText!: Phaser.GameObjects.Text;
 
   private restartKey!: Phaser.Input.Keyboard.Key;
@@ -65,7 +67,7 @@ export class RaidScene extends Scene {
     this.enemies = [];
 
     this.lastEnemyHitAt = 0;
-    this.playerDead = false;
+    this.raidStatus = "playing";
   }
 
   create() {
@@ -88,7 +90,6 @@ export class RaidScene extends Scene {
 
     this.healthText = hud.healthText;
     this.lootText = hud.lootText;
-    this.deathText = hud.deathText;
 
     this.updateHealthHud();
     this.updateLootHud();
@@ -133,9 +134,9 @@ export class RaidScene extends Scene {
   }
 
   update() {
-    if (this.playerDead) {
+    if (this.raidStatus !== "playing") {
       if (Phaser.Input.Keyboard.JustDown(this.restartKey)) {
-        this.scene.restart();
+        this.scene.start("StashScene");
       }
 
       return;
@@ -178,7 +179,7 @@ export class RaidScene extends Scene {
 
   private setupShooting() {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this.playerDead) {
+      if (this.raidStatus !== "playing") {
         return;
       }
 
@@ -224,7 +225,7 @@ export class RaidScene extends Scene {
   }
 
   private killPlayer() {
-    this.playerDead = true;
+    this.raidStatus = "dead";
 
     this.player.setVelocity(0, 0);
 
@@ -236,7 +237,11 @@ export class RaidScene extends Scene {
 
     this.player.setAlpha(0.4);
 
-    this.deathText.setVisible(true);
+    showRaidResult({
+      scene: this,
+      status: "dead",
+      scrapCount: this.scrapCount,
+    });
   }
 
   private tryPickupLoot() {
@@ -284,7 +289,9 @@ export class RaidScene extends Scene {
   }
 
   private extract() {
-    this.playerDead = true;
+    this.raidStatus = "extracted";
+
+    addScrapToStash(this.scrapCount);
 
     this.player.setVelocity(0, 0);
 
@@ -294,18 +301,10 @@ export class RaidScene extends Scene {
       }
     }
 
-    this.add
-      .text(
-        this.scale.width / 2,
-        this.scale.height / 2,
-        `EXTRACTED\nScrap: ${this.scrapCount}`,
-        {
-          fontSize: "36px",
-          color: "#00ff66",
-          align: "center",
-        },
-      )
-      .setOrigin(0.5)
-      .setScrollFactor(0);
+    showRaidResult({
+      scene: this,
+      status: "extracted",
+      scrapCount: this.scrapCount,
+    });
   }
 }
