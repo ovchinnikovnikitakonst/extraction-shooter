@@ -1,30 +1,26 @@
 import * as Phaser from "phaser";
 import { Scene } from "phaser";
 
+import { RAID_CONFIG } from "../config/raidConfig";
+
 import { createPlayer } from "../entities/createPlayer";
-import { createEnemy } from "../entities/createEnemy";
 import { createBulletTexture } from "../entities/createBulletTexture";
+import { createLootTexture } from "../entities/createLoot";
+
 import type { Enemy } from "../entities/enemy";
-
-import {
-  applyPlayerDamage,
-  createPlayerState,
-  isPlayerDead,
-} from "../systems/playerState";
-
-import { getMovementVelocity } from "../systems/playerMovement";
-import { getShotDirection } from "../systems/shooting";
-import { getEnemyVelocity } from "../systems/enemyMovement";
-
-import { createLoot, createLootTexture } from "../entities/createLoot";
-
 import type { Loot } from "../entities/loot";
 
-import {
-  applyDamage,
-  createEnemyState,
-  isEnemyDead,
-} from "../systems/enemyState";
+import { createRaidEnemies } from "../entities/createRaidEnemies";
+import { createRaidWorld } from "../world/createRaidWorld";
+import { createRaidHud } from "../ui/createRaidHud";
+import { updateEnemy } from "../systems/updateEnemy";
+import { shootBullet } from "../systems/shootBullet";
+import { setupBulletEnemyOverlap } from "../systems/setupBulletEnemyOverlap";
+import { setupEnemyPlayerOverlap } from "../systems/setupEnemyPlayerOverlap";
+
+import { createPlayerState } from "../systems/playerState";
+
+import { getMovementVelocity } from "../systems/playerMovement";
 
 export class RaidScene extends Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -35,7 +31,8 @@ export class RaidScene extends Scene {
   private loot: Loot[] = [];
   private scrapCount = 0;
 
-  private playerState = createPlayerState(100);
+  private playerState = createPlayerState(RAID_CONFIG.player.hp);
+
   private lastEnemyHitAt = 0;
   private playerDead = false;
 
@@ -62,124 +59,77 @@ export class RaidScene extends Scene {
   init() {
     this.loot = [];
     this.scrapCount = 0;
-    this.playerState = createPlayerState(100);
+
+    this.playerState = createPlayerState(RAID_CONFIG.player.hp);
+
     this.enemies = [];
+
     this.lastEnemyHitAt = 0;
     this.playerDead = false;
   }
 
   create() {
-    const worldWidth = 2000;
-    const worldHeight = 2000;
+    const { width, height } = RAID_CONFIG.world;
 
-    const playerSpawn = {
-      x: 200,
-      y: 200,
-    };
+    const { extractionZone } = createRaidWorld(this);
 
-    const extractionPoint = {
-      x: worldWidth - 200,
-      y: worldHeight - 200,
-    };
-
-    this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
-
-    this.createGrid(worldWidth, worldHeight);
+    this.extractionZone = extractionZone;
 
     createBulletTexture(this);
-
     createLootTexture(this);
 
     this.bullets = this.physics.add.group();
 
-    this.player = createPlayer(this, playerSpawn.x, playerSpawn.y);
+    const spawn = RAID_CONFIG.player.spawn;
 
-    this.extractionZone = this.add.rectangle(
-      extractionPoint.x,
-      extractionPoint.y,
-      120,
-      120,
-      0x00ff66,
-      0.25,
-    );
+    this.player = createPlayer(this, spawn.x, spawn.y);
 
-    this.physics.add.existing(this.extractionZone, true);
+    const hud = createRaidHud(this);
 
-    this.add
-      .text(extractionPoint.x, extractionPoint.y - 90, "EXIT", {
-        fontSize: "24px",
-        color: "#00ff66",
-      })
-      .setOrigin(0.5);
-
-    this.add
-      .text(playerSpawn.x, playerSpawn.y - 60, "START", {
-        fontSize: "20px",
-        color: "#ffffff",
-      })
-      .setOrigin(0.5);
-
-    this.healthText = this.add.text(20, 20, "", {
-      fontSize: "24px",
-      color: "#ffffff",
-    });
-
-    this.lootText = this.add.text(20, 55, "", {
-      fontSize: "20px",
-      color: "#ffffff",
-    });
-
-    this.lootText.setScrollFactor(0);
-
-    this.updateLootHud();
-
-    this.healthText.setScrollFactor(0);
+    this.healthText = hud.healthText;
+    this.lootText = hud.lootText;
+    this.deathText = hud.deathText;
 
     this.updateHealthHud();
+    this.updateLootHud();
 
-    this.deathText = this.add
-      .text(
-        this.scale.width / 2,
-        this.scale.height / 2,
-        "YOU DIED\nPress R to restart",
-        {
-          fontSize: "36px",
-          color: "#ff4444",
-          align: "center",
-        },
-      )
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setVisible(false);
-
-    this.enemies = [
-      {
-        sprite: createEnemy(this, worldWidth / 2 + 300, worldHeight / 2),
-        state: createEnemyState(3),
-        aggro: false,
-      },
-      {
-        sprite: createEnemy(this, worldWidth / 2 - 500, worldHeight / 2 + 300),
-        state: createEnemyState(3),
-        aggro: false,
-      },
-      {
-        sprite: createEnemy(this, worldWidth / 2 + 400, worldHeight / 2 - 500),
-        state: createEnemyState(3),
-        aggro: false,
-      },
-    ];
+    this.enemies = createRaidEnemies(this);
 
     for (const enemy of this.enemies) {
-      this.setupBulletEnemyOverlap(enemy);
-      this.setupEnemyPlayerOverlap(enemy);
+      setupBulletEnemyOverlap(this, this.bullets, enemy, this.loot);
+
+      setupEnemyPlayerOverlap({
+        scene: this,
+        enemy,
+        player: this.player,
+
+        getPlayerState: () => this.playerState,
+
+        setPlayerState: (state) => {
+          this.playerState = state;
+        },
+
+        getLastHitAt: () => this.lastEnemyHitAt,
+
+        setLastHitAt: (time) => {
+          this.lastEnemyHitAt = time;
+        },
+
+        onHealthChange: () => {
+          this.updateHealthHud();
+        },
+
+        onPlayerDeath: () => {
+          this.killPlayer();
+        },
+      });
     }
     this.setupKeyboard();
     this.setupShooting();
 
     this.cameras.main.startFollow(this.player);
 
-    this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+    this.cameras.main.setBounds(0, 0, width, height);
   }
 
   update() {
@@ -195,7 +145,7 @@ export class RaidScene extends Scene {
     this.updatePlayerAim();
 
     for (const enemy of this.enemies) {
-      this.updateEnemy(enemy);
+      updateEnemy(enemy, this.player);
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
@@ -205,16 +155,6 @@ export class RaidScene extends Scene {
       }
 
       this.tryPickupLoot();
-    }
-  }
-
-  private createGrid(worldWidth: number, worldHeight: number) {
-    for (let x = 0; x <= worldWidth; x += 200) {
-      this.add.rectangle(x, worldHeight / 2, 4, worldHeight, 0x333833);
-    }
-
-    for (let y = 0; y <= worldHeight; y += 200) {
-      this.add.rectangle(worldWidth / 2, y, worldWidth, 4, 0x333833);
     }
   }
 
@@ -243,29 +183,7 @@ export class RaidScene extends Scene {
       }
 
       if (pointer.leftButtonDown()) {
-        this.shoot(pointer);
-      }
-    });
-  }
-
-  private setupBulletEnemyOverlap(enemy: Enemy) {
-    this.physics.add.overlap(this.bullets, enemy.sprite, (object1, object2) => {
-      const first = object1 as Phaser.Physics.Arcade.Image;
-
-      const second = object2 as Phaser.Physics.Arcade.Image;
-
-      const bullet = first.texture.key === "bullet" ? first : second;
-
-      bullet.disableBody(true, true);
-
-      enemy.state = applyDamage(enemy.state, 1);
-
-      if (isEnemyDead(enemy.state)) {
-        const loot = createLoot(this, enemy.sprite.x, enemy.sprite.y);
-
-        this.loot.push(loot);
-
-        enemy.sprite.destroy();
+        shootBullet(this, this.player, this.bullets, pointer);
       }
     });
   }
@@ -278,7 +196,7 @@ export class RaidScene extends Scene {
         left: this.wasd.A.isDown,
         right: this.wasd.D.isDown,
       },
-      250,
+      RAID_CONFIG.player.speed,
     );
 
     this.player.setVelocity(velocity.x, velocity.y);
@@ -299,91 +217,10 @@ export class RaidScene extends Scene {
     this.player.setRotation(angle);
   }
 
-  private updateEnemy(enemy: Enemy) {
-    if (!enemy.sprite.active) {
-      return;
-    }
-
-    const distanceToPlayer = Phaser.Math.Distance.Between(
-      enemy.sprite.x,
-      enemy.sprite.y,
-      this.player.x,
-      this.player.y,
-    );
-
-    const aggroDistance = 250;
-    const loseAggroDistance = 400;
-
-    if (distanceToPlayer <= aggroDistance) {
-      enemy.aggro = true;
-    }
-
-    if (distanceToPlayer >= loseAggroDistance) {
-      enemy.aggro = false;
-    }
-
-    if (!enemy.aggro) {
-      enemy.sprite.setVelocity(0, 0);
-      return;
-    }
-
-    const velocity = getEnemyVelocity(
-      enemy.sprite.x,
-      enemy.sprite.y,
-      this.player.x,
-      this.player.y,
-      100,
-    );
-
-    enemy.sprite.setVelocity(velocity.x, velocity.y);
-  }
-
   private updateHealthHud() {
     this.healthText.setText(
       `HP: ${this.playerState.hp}/${this.playerState.maxHp}`,
     );
-  }
-
-  private shoot(pointer: Phaser.Input.Pointer) {
-    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-
-    const direction = getShotDirection(
-      this.player.x,
-      this.player.y,
-      worldPoint.x,
-      worldPoint.y,
-    );
-
-    const bullet = this.bullets.create(
-      this.player.x,
-      this.player.y,
-      "bullet",
-    ) as Phaser.Physics.Arcade.Image;
-
-    const bulletSpeed = 700;
-
-    bullet.setVelocity(direction.x * bulletSpeed, direction.y * bulletSpeed);
-  }
-
-  private setupEnemyPlayerOverlap(enemy: Enemy) {
-    this.physics.add.overlap(enemy.sprite, this.player, () => {
-      const now = this.time.now;
-      const hitCooldown = 500;
-
-      if (now - this.lastEnemyHitAt < hitCooldown) {
-        return;
-      }
-
-      this.lastEnemyHitAt = now;
-
-      this.playerState = applyPlayerDamage(this.playerState, 10);
-
-      this.updateHealthHud();
-
-      if (isPlayerDead(this.playerState)) {
-        this.killPlayer();
-      }
-    });
   }
 
   private killPlayer() {
@@ -403,7 +240,7 @@ export class RaidScene extends Scene {
   }
 
   private tryPickupLoot() {
-    const pickupDistance = 70;
+    const pickupDistance = RAID_CONFIG.loot.pickupDistance;
 
     const loot = this.loot.find((item) => {
       if (!item.sprite.active) {
@@ -443,7 +280,7 @@ export class RaidScene extends Scene {
       this.extractionZone.y,
     );
 
-    return distance <= 80;
+    return distance <= RAID_CONFIG.extraction.interactDistance;
   }
 
   private extract() {
