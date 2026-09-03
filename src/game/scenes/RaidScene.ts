@@ -5,6 +5,12 @@ import { createPlayer } from "../entities/createPlayer";
 import { createEnemy } from "../entities/createEnemy";
 import { createBulletTexture } from "../entities/createBulletTexture";
 
+import {
+  applyPlayerDamage,
+  createPlayerState,
+  isPlayerDead,
+} from "../systems/playerState";
+
 import { getMovementVelocity } from "../systems/playerMovement";
 import { getShotDirection } from "../systems/shooting";
 import { getEnemyVelocity } from "../systems/enemyMovement";
@@ -23,6 +29,15 @@ export class RaidScene extends Scene {
   private enemyState = createEnemyState(3);
   private enemyAggro = false;
 
+  private playerState = createPlayerState(100);
+  private lastEnemyHitAt = 0;
+  private playerDead = false;
+
+  private healthText!: Phaser.GameObjects.Text;
+  private deathText!: Phaser.GameObjects.Text;
+
+  private restartKey!: Phaser.Input.Keyboard.Key;
+
   private wasd!: {
     W: Phaser.Input.Keyboard.Key;
     A: Phaser.Input.Keyboard.Key;
@@ -32,6 +47,15 @@ export class RaidScene extends Scene {
 
   constructor() {
     super("RaidScene");
+  }
+
+  init() {
+    this.playerState = createPlayerState(100);
+    this.enemyState = createEnemyState(3);
+
+    this.enemyAggro = false;
+    this.lastEnemyHitAt = 0;
+    this.playerDead = false;
   }
 
   create() {
@@ -48,9 +72,34 @@ export class RaidScene extends Scene {
 
     this.player = createPlayer(this, worldWidth / 2, worldHeight / 2);
 
+    this.healthText = this.add.text(20, 20, "", {
+      fontSize: "24px",
+      color: "#ffffff",
+    });
+
+    this.healthText.setScrollFactor(0);
+
+    this.updateHealthHud();
+
+    this.deathText = this.add
+      .text(
+        this.scale.width / 2,
+        this.scale.height / 2,
+        "YOU DIED\nPress R to restart",
+        {
+          fontSize: "36px",
+          color: "#ff4444",
+          align: "center",
+        },
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setVisible(false);
+
     this.enemy = createEnemy(this, worldWidth / 2 + 300, worldHeight / 2);
 
     this.setupBulletEnemyOverlap();
+    this.setupEnemyPlayerOverlap();
     this.setupKeyboard();
     this.setupShooting();
 
@@ -60,6 +109,14 @@ export class RaidScene extends Scene {
   }
 
   update() {
+    if (this.playerDead) {
+      if (Phaser.Input.Keyboard.JustDown(this.restartKey)) {
+        this.scene.restart();
+      }
+
+      return;
+    }
+
     this.updatePlayerMovement();
     this.updatePlayerAim();
     this.updateEnemy();
@@ -88,10 +145,16 @@ export class RaidScene extends Scene {
       S: keyboard.addKey("S"),
       D: keyboard.addKey("D"),
     };
+
+    this.restartKey = keyboard.addKey("R");
   }
 
   private setupShooting() {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (this.playerDead) {
+        return;
+      }
+
       if (pointer.leftButtonDown()) {
         this.shoot(pointer);
       }
@@ -185,6 +248,12 @@ export class RaidScene extends Scene {
     this.enemy.setVelocity(enemyVelocity.x, enemyVelocity.y);
   }
 
+  private updateHealthHud() {
+    this.healthText.setText(
+      `HP: ${this.playerState.hp}/${this.playerState.maxHp}`,
+    );
+  }
+
   private shoot(pointer: Phaser.Input.Pointer) {
     const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
 
@@ -204,5 +273,38 @@ export class RaidScene extends Scene {
     const bulletSpeed = 700;
 
     bullet.setVelocity(direction.x * bulletSpeed, direction.y * bulletSpeed);
+  }
+
+  private setupEnemyPlayerOverlap() {
+    this.physics.add.overlap(this.enemy, this.player, () => {
+      const now = this.time.now;
+      const hitCooldown = 500;
+
+      if (now - this.lastEnemyHitAt < hitCooldown) {
+        return;
+      }
+
+      this.lastEnemyHitAt = now;
+
+      this.playerState = applyPlayerDamage(this.playerState, 10);
+
+      this.updateHealthHud();
+
+      if (isPlayerDead(this.playerState)) {
+        this.killPlayer();
+      }
+    });
+  }
+
+  private killPlayer() {
+    this.playerDead = true;
+
+    this.player.setVelocity(0, 0);
+
+    this.enemy.setVelocity(0, 0);
+
+    this.player.setAlpha(0.4);
+
+    this.deathText.setVisible(true);
   }
 }
