@@ -16,6 +16,10 @@ import { getMovementVelocity } from "../systems/playerMovement";
 import { getShotDirection } from "../systems/shooting";
 import { getEnemyVelocity } from "../systems/enemyMovement";
 
+import { createLoot, createLootTexture } from "../entities/createLoot";
+
+import type { Loot } from "../entities/loot";
+
 import {
   applyDamage,
   createEnemyState,
@@ -27,14 +31,20 @@ export class RaidScene extends Scene {
   private bullets!: Phaser.Physics.Arcade.Group;
 
   private enemies: Enemy[] = [];
+
+  private loot: Loot[] = [];
+  private scrapCount = 0;
+
   private playerState = createPlayerState(100);
   private lastEnemyHitAt = 0;
   private playerDead = false;
 
   private healthText!: Phaser.GameObjects.Text;
   private deathText!: Phaser.GameObjects.Text;
+  private lootText!: Phaser.GameObjects.Text;
 
   private restartKey!: Phaser.Input.Keyboard.Key;
+  private interactKey!: Phaser.Input.Keyboard.Key;
 
   private wasd!: {
     W: Phaser.Input.Keyboard.Key;
@@ -48,6 +58,8 @@ export class RaidScene extends Scene {
   }
 
   init() {
+    this.loot = [];
+    this.scrapCount = 0;
     this.playerState = createPlayerState(100);
     this.enemies = [];
     this.lastEnemyHitAt = 0;
@@ -64,6 +76,8 @@ export class RaidScene extends Scene {
 
     createBulletTexture(this);
 
+    createLootTexture(this);
+
     this.bullets = this.physics.add.group();
 
     this.player = createPlayer(this, worldWidth / 2, worldHeight / 2);
@@ -72,6 +86,15 @@ export class RaidScene extends Scene {
       fontSize: "24px",
       color: "#ffffff",
     });
+
+    this.lootText = this.add.text(20, 55, "", {
+      fontSize: "20px",
+      color: "#ffffff",
+    });
+
+    this.lootText.setScrollFactor(0);
+
+    this.updateLootHud();
 
     this.healthText.setScrollFactor(0);
 
@@ -137,6 +160,10 @@ export class RaidScene extends Scene {
     for (const enemy of this.enemies) {
       this.updateEnemy(enemy);
     }
+
+    if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+      this.tryPickupLoot();
+    }
   }
 
   private createGrid(worldWidth: number, worldHeight: number) {
@@ -164,6 +191,7 @@ export class RaidScene extends Scene {
     };
 
     this.restartKey = keyboard.addKey("R");
+    this.interactKey = keyboard.addKey("E");
   }
 
   private setupShooting() {
@@ -191,6 +219,10 @@ export class RaidScene extends Scene {
       enemy.state = applyDamage(enemy.state, 1);
 
       if (isEnemyDead(enemy.state)) {
+        const loot = createLoot(this, enemy.sprite.x, enemy.sprite.y);
+
+        this.loot.push(loot);
+
         enemy.sprite.destroy();
       }
     });
@@ -326,5 +358,38 @@ export class RaidScene extends Scene {
     this.player.setAlpha(0.4);
 
     this.deathText.setVisible(true);
+  }
+
+  private tryPickupLoot() {
+    const pickupDistance = 70;
+
+    const loot = this.loot.find((item) => {
+      if (!item.sprite.active) {
+        return false;
+      }
+
+      const distance = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.player.y,
+        item.sprite.x,
+        item.sprite.y,
+      );
+
+      return distance <= pickupDistance;
+    });
+
+    if (!loot) {
+      return;
+    }
+
+    this.scrapCount += 1;
+
+    loot.sprite.destroy();
+
+    this.updateLootHud();
+  }
+
+  private updateLootHud() {
+    this.lootText.setText(`Scrap: ${this.scrapCount}`);
   }
 }
