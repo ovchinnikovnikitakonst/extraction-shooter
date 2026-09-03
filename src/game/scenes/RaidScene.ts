@@ -2,11 +2,19 @@ import * as Phaser from "phaser";
 import { Scene } from "phaser";
 import { getMovementVelocity } from "../systems/playerMovement";
 import { getShotDirection } from "../systems/shooting";
+import { getEnemyVelocity } from "../systems/enemyMovement";
+import {
+  applyDamage,
+  createEnemyState,
+  isEnemyDead,
+} from "../systems/enemyState";
 
 export class RaidScene extends Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private enemy!: Phaser.Physics.Arcade.Sprite;
   private bullets!: Phaser.Physics.Arcade.Group;
+  private enemyState = createEnemyState(3);
+  private enemyAggro = false;
 
   private wasd!: {
     W: Phaser.Input.Keyboard.Key;
@@ -58,11 +66,21 @@ export class RaidScene extends Scene {
       "enemy",
     );
 
-    this.enemy.setImmovable(true);
+    this.physics.add.overlap(this.bullets, this.enemy, (object1, object2) => {
+      const first = object1 as Phaser.Physics.Arcade.Image;
+      const second = object2 as Phaser.Physics.Arcade.Image;
 
-    this.physics.add.overlap(this.bullets, this.enemy, (bullet, enemy) => {
-      bullet.destroy();
-      enemy.destroy();
+      const bullet = first.texture.key === "bullet" ? first : second;
+
+      bullet.disableBody(true, true);
+
+      this.enemyState = applyDamage(this.enemyState, 1);
+
+      console.log("Enemy HP:", this.enemyState.hp);
+
+      if (isEnemyDead(this.enemyState)) {
+        this.enemy.destroy();
+      }
     });
 
     const bulletGraphics = this.add.graphics();
@@ -131,6 +149,40 @@ export class RaidScene extends Scene {
     );
 
     this.player.setRotation(angle);
+
+    if (this.enemy.active) {
+      const distanceToPlayer = Phaser.Math.Distance.Between(
+        this.enemy.x,
+        this.enemy.y,
+        this.player.x,
+        this.player.y,
+      );
+
+      const aggroDistance = 250;
+      const loseAggroDistance = 400;
+
+      if (distanceToPlayer <= aggroDistance) {
+        this.enemyAggro = true;
+      }
+
+      if (distanceToPlayer >= loseAggroDistance) {
+        this.enemyAggro = false;
+      }
+
+      if (this.enemyAggro) {
+        const enemyVelocity = getEnemyVelocity(
+          this.enemy.x,
+          this.enemy.y,
+          this.player.x,
+          this.player.y,
+          100,
+        );
+
+        this.enemy.setVelocity(enemyVelocity.x, enemyVelocity.y);
+      } else {
+        this.enemy.setVelocity(0, 0);
+      }
+    }
   }
 
   private shoot(pointer: Phaser.Input.Pointer) {
