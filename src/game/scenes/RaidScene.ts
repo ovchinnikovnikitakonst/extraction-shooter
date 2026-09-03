@@ -4,6 +4,7 @@ import { Scene } from "phaser";
 import { createPlayer } from "../entities/createPlayer";
 import { createEnemy } from "../entities/createEnemy";
 import { createBulletTexture } from "../entities/createBulletTexture";
+import type { Enemy } from "../entities/enemy";
 
 import {
   applyPlayerDamage,
@@ -23,12 +24,9 @@ import {
 
 export class RaidScene extends Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
-  private enemy!: Phaser.Physics.Arcade.Sprite;
   private bullets!: Phaser.Physics.Arcade.Group;
 
-  private enemyState = createEnemyState(3);
-  private enemyAggro = false;
-
+  private enemies: Enemy[] = [];
   private playerState = createPlayerState(100);
   private lastEnemyHitAt = 0;
   private playerDead = false;
@@ -51,9 +49,7 @@ export class RaidScene extends Scene {
 
   init() {
     this.playerState = createPlayerState(100);
-    this.enemyState = createEnemyState(3);
-
-    this.enemyAggro = false;
+    this.enemies = [];
     this.lastEnemyHitAt = 0;
     this.playerDead = false;
   }
@@ -96,10 +92,28 @@ export class RaidScene extends Scene {
       .setScrollFactor(0)
       .setVisible(false);
 
-    this.enemy = createEnemy(this, worldWidth / 2 + 300, worldHeight / 2);
+    this.enemies = [
+      {
+        sprite: createEnemy(this, worldWidth / 2 + 300, worldHeight / 2),
+        state: createEnemyState(3),
+        aggro: false,
+      },
+      {
+        sprite: createEnemy(this, worldWidth / 2 - 500, worldHeight / 2 + 300),
+        state: createEnemyState(3),
+        aggro: false,
+      },
+      {
+        sprite: createEnemy(this, worldWidth / 2 + 400, worldHeight / 2 - 500),
+        state: createEnemyState(3),
+        aggro: false,
+      },
+    ];
 
-    this.setupBulletEnemyOverlap();
-    this.setupEnemyPlayerOverlap();
+    for (const enemy of this.enemies) {
+      this.setupBulletEnemyOverlap(enemy);
+      this.setupEnemyPlayerOverlap(enemy);
+    }
     this.setupKeyboard();
     this.setupShooting();
 
@@ -119,7 +133,10 @@ export class RaidScene extends Scene {
 
     this.updatePlayerMovement();
     this.updatePlayerAim();
-    this.updateEnemy();
+
+    for (const enemy of this.enemies) {
+      this.updateEnemy(enemy);
+    }
   }
 
   private createGrid(worldWidth: number, worldHeight: number) {
@@ -161,8 +178,8 @@ export class RaidScene extends Scene {
     });
   }
 
-  private setupBulletEnemyOverlap() {
-    this.physics.add.overlap(this.bullets, this.enemy, (object1, object2) => {
+  private setupBulletEnemyOverlap(enemy: Enemy) {
+    this.physics.add.overlap(this.bullets, enemy.sprite, (object1, object2) => {
       const first = object1 as Phaser.Physics.Arcade.Image;
 
       const second = object2 as Phaser.Physics.Arcade.Image;
@@ -171,10 +188,10 @@ export class RaidScene extends Scene {
 
       bullet.disableBody(true, true);
 
-      this.enemyState = applyDamage(this.enemyState, 1);
+      enemy.state = applyDamage(enemy.state, 1);
 
-      if (isEnemyDead(this.enemyState)) {
-        this.enemy.destroy();
+      if (isEnemyDead(enemy.state)) {
+        enemy.sprite.destroy();
       }
     });
   }
@@ -208,14 +225,14 @@ export class RaidScene extends Scene {
     this.player.setRotation(angle);
   }
 
-  private updateEnemy() {
-    if (!this.enemy.active) {
+  private updateEnemy(enemy: Enemy) {
+    if (!enemy.sprite.active) {
       return;
     }
 
     const distanceToPlayer = Phaser.Math.Distance.Between(
-      this.enemy.x,
-      this.enemy.y,
+      enemy.sprite.x,
+      enemy.sprite.y,
       this.player.x,
       this.player.y,
     );
@@ -224,28 +241,27 @@ export class RaidScene extends Scene {
     const loseAggroDistance = 400;
 
     if (distanceToPlayer <= aggroDistance) {
-      this.enemyAggro = true;
+      enemy.aggro = true;
     }
 
     if (distanceToPlayer >= loseAggroDistance) {
-      this.enemyAggro = false;
+      enemy.aggro = false;
     }
 
-    if (!this.enemyAggro) {
-      this.enemy.setVelocity(0, 0);
-
+    if (!enemy.aggro) {
+      enemy.sprite.setVelocity(0, 0);
       return;
     }
 
-    const enemyVelocity = getEnemyVelocity(
-      this.enemy.x,
-      this.enemy.y,
+    const velocity = getEnemyVelocity(
+      enemy.sprite.x,
+      enemy.sprite.y,
       this.player.x,
       this.player.y,
       100,
     );
 
-    this.enemy.setVelocity(enemyVelocity.x, enemyVelocity.y);
+    enemy.sprite.setVelocity(velocity.x, velocity.y);
   }
 
   private updateHealthHud() {
@@ -275,8 +291,8 @@ export class RaidScene extends Scene {
     bullet.setVelocity(direction.x * bulletSpeed, direction.y * bulletSpeed);
   }
 
-  private setupEnemyPlayerOverlap() {
-    this.physics.add.overlap(this.enemy, this.player, () => {
+  private setupEnemyPlayerOverlap(enemy: Enemy) {
+    this.physics.add.overlap(enemy.sprite, this.player, () => {
       const now = this.time.now;
       const hitCooldown = 500;
 
@@ -301,7 +317,11 @@ export class RaidScene extends Scene {
 
     this.player.setVelocity(0, 0);
 
-    this.enemy.setVelocity(0, 0);
+    for (const enemy of this.enemies) {
+      if (enemy.sprite.active) {
+        enemy.sprite.setVelocity(0, 0);
+      }
+    }
 
     this.player.setAlpha(0.4);
 
