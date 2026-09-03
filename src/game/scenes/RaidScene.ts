@@ -46,6 +46,8 @@ export class RaidScene extends Scene {
   private restartKey!: Phaser.Input.Keyboard.Key;
   private interactKey!: Phaser.Input.Keyboard.Key;
 
+  private extractionZone!: Phaser.GameObjects.Rectangle;
+
   private wasd!: {
     W: Phaser.Input.Keyboard.Key;
     A: Phaser.Input.Keyboard.Key;
@@ -70,6 +72,16 @@ export class RaidScene extends Scene {
     const worldWidth = 2000;
     const worldHeight = 2000;
 
+    const playerSpawn = {
+      x: 200,
+      y: 200,
+    };
+
+    const extractionPoint = {
+      x: worldWidth - 200,
+      y: worldHeight - 200,
+    };
+
     this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
 
     this.createGrid(worldWidth, worldHeight);
@@ -80,7 +92,32 @@ export class RaidScene extends Scene {
 
     this.bullets = this.physics.add.group();
 
-    this.player = createPlayer(this, worldWidth / 2, worldHeight / 2);
+    this.player = createPlayer(this, playerSpawn.x, playerSpawn.y);
+
+    this.extractionZone = this.add.rectangle(
+      extractionPoint.x,
+      extractionPoint.y,
+      120,
+      120,
+      0x00ff66,
+      0.25,
+    );
+
+    this.physics.add.existing(this.extractionZone, true);
+
+    this.add
+      .text(extractionPoint.x, extractionPoint.y - 90, "EXIT", {
+        fontSize: "24px",
+        color: "#00ff66",
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(playerSpawn.x, playerSpawn.y - 60, "START", {
+        fontSize: "20px",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5);
 
     this.healthText = this.add.text(20, 20, "", {
       fontSize: "24px",
@@ -162,6 +199,11 @@ export class RaidScene extends Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+      if (this.isPlayerInExtractionZone()) {
+        this.extract();
+        return;
+      }
+
       this.tryPickupLoot();
     }
   }
@@ -391,5 +433,42 @@ export class RaidScene extends Scene {
 
   private updateLootHud() {
     this.lootText.setText(`Scrap: ${this.scrapCount}`);
+  }
+
+  private isPlayerInExtractionZone() {
+    const distance = Phaser.Math.Distance.Between(
+      this.player.x,
+      this.player.y,
+      this.extractionZone.x,
+      this.extractionZone.y,
+    );
+
+    return distance <= 80;
+  }
+
+  private extract() {
+    this.playerDead = true;
+
+    this.player.setVelocity(0, 0);
+
+    for (const enemy of this.enemies) {
+      if (enemy.sprite.active) {
+        enemy.sprite.setVelocity(0, 0);
+      }
+    }
+
+    this.add
+      .text(
+        this.scale.width / 2,
+        this.scale.height / 2,
+        `EXTRACTED\nScrap: ${this.scrapCount}`,
+        {
+          fontSize: "36px",
+          color: "#00ff66",
+          align: "center",
+        },
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0);
   }
 }
