@@ -19,7 +19,14 @@ import { setupBulletEnemyOverlap } from "../systems/setupBulletEnemyOverlap";
 import { setupEnemyPlayerOverlap } from "../systems/setupEnemyPlayerOverlap";
 import type { RaidStatus } from "../systems/raidState";
 import { showRaidResult } from "../ui/showRaidResult";
-import { addScrapToStash, getStashState } from "../systems/stashState";
+import { addInventoryToStash } from "../systems/stashState";
+import {
+  addItemToInventory,
+  createRaidInventory,
+  getItemAmount,
+  RaidInventory,
+} from "../inventory/raidInventory";
+import { createInventoryPanel } from "../ui/createInventoryPanel";
 
 import { createPlayerState } from "../systems/playerState";
 
@@ -32,7 +39,7 @@ export class RaidScene extends Scene {
   private enemies: Enemy[] = [];
 
   private loot: Loot[] = [];
-  private scrapCount = 0;
+  private raidInventory: RaidInventory = createRaidInventory();
 
   private playerState = createPlayerState(RAID_CONFIG.player.hp);
 
@@ -47,6 +54,14 @@ export class RaidScene extends Scene {
 
   private extractionZone!: Phaser.GameObjects.Rectangle;
 
+  private inventoryOpen = false;
+
+  private inventoryKey!: Phaser.Input.Keyboard.Key;
+
+  private inventoryBackground!: Phaser.GameObjects.Rectangle;
+  private inventoryTitle!: Phaser.GameObjects.Text;
+  private inventoryContent!: Phaser.GameObjects.Text;
+
   private wasd!: {
     W: Phaser.Input.Keyboard.Key;
     A: Phaser.Input.Keyboard.Key;
@@ -60,7 +75,8 @@ export class RaidScene extends Scene {
 
   init() {
     this.loot = [];
-    this.scrapCount = 0;
+    this.raidInventory = createRaidInventory();
+    this.inventoryOpen = false;
 
     this.playerState = createPlayerState(RAID_CONFIG.player.hp);
 
@@ -93,6 +109,16 @@ export class RaidScene extends Scene {
 
     this.updateHealthHud();
     this.updateLootHud();
+
+    const inventoryPanel = createInventoryPanel({
+      scene: this,
+    });
+
+    this.inventoryBackground = inventoryPanel.background;
+
+    this.inventoryTitle = inventoryPanel.title;
+
+    this.inventoryContent = inventoryPanel.content;
 
     this.enemies = createRaidEnemies(this);
 
@@ -142,6 +168,15 @@ export class RaidScene extends Scene {
       return;
     }
 
+    if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
+      this.toggleInventory();
+    }
+
+    if (this.inventoryOpen) {
+      this.player.setVelocity(0, 0);
+      return;
+    }
+
     this.updatePlayerMovement();
     this.updatePlayerAim();
 
@@ -175,6 +210,7 @@ export class RaidScene extends Scene {
 
     this.restartKey = keyboard.addKey("R");
     this.interactKey = keyboard.addKey("E");
+    this.inventoryKey = keyboard.addKey("TAB");
   }
 
   private setupShooting() {
@@ -240,7 +276,7 @@ export class RaidScene extends Scene {
     showRaidResult({
       scene: this,
       status: "dead",
-      scrapCount: this.scrapCount,
+      scrapCount: getItemAmount(this.raidInventory, "scrap"),
     });
   }
 
@@ -266,7 +302,7 @@ export class RaidScene extends Scene {
       return;
     }
 
-    this.scrapCount += 1;
+    this.raidInventory = addItemToInventory(this.raidInventory, loot.type, 1);
 
     loot.sprite.destroy();
 
@@ -274,7 +310,11 @@ export class RaidScene extends Scene {
   }
 
   private updateLootHud() {
-    this.lootText.setText(`Scrap: ${this.scrapCount}`);
+    const scrapAmount = getItemAmount(this.raidInventory, "scrap");
+
+    const ammoAmount = getItemAmount(this.raidInventory, "ammo");
+
+    this.lootText.setText(`Scrap: ${scrapAmount}\nAmmo: ${ammoAmount}`);
   }
 
   private isPlayerInExtractionZone() {
@@ -291,7 +331,9 @@ export class RaidScene extends Scene {
   private extract() {
     this.raidStatus = "extracted";
 
-    addScrapToStash(this.scrapCount);
+    const scrapAmount = getItemAmount(this.raidInventory, "scrap");
+
+    addInventoryToStash(this.raidInventory);
 
     this.player.setVelocity(0, 0);
 
@@ -304,7 +346,39 @@ export class RaidScene extends Scene {
     showRaidResult({
       scene: this,
       status: "extracted",
-      scrapCount: this.scrapCount,
+      scrapCount: scrapAmount,
     });
+  }
+
+  private toggleInventory() {
+    this.inventoryOpen = !this.inventoryOpen;
+
+    this.inventoryBackground.setVisible(this.inventoryOpen);
+
+    this.inventoryTitle.setVisible(this.inventoryOpen);
+
+    this.inventoryContent.setVisible(this.inventoryOpen);
+
+    if (this.inventoryOpen) {
+      this.updateInventoryPanel();
+    }
+  }
+
+  private updateInventoryPanel() {
+    const scrapAmount = getItemAmount(this.raidInventory, "scrap");
+
+    const ammoAmount = getItemAmount(this.raidInventory, "ammo");
+
+    const medkitAmount = getItemAmount(this.raidInventory, "medkit");
+
+    this.inventoryContent.setText(
+      [
+        `Scrap: ${scrapAmount}`,
+        `Ammo: ${ammoAmount}`,
+        `Medkit: ${medkitAmount}`,
+        "",
+        "Press Tab to close",
+      ].join("\n"),
+    );
   }
 }

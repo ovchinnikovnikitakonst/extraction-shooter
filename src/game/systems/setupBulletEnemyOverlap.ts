@@ -29,7 +29,14 @@ export const setupBulletEnemyOverlap = (
       return;
     }
 
-    const droppedLoot = createLoot(scene, enemy.sprite.x, enemy.sprite.y);
+    const lootType = Math.random() < 0.5 ? "scrap" : "ammo";
+
+    const droppedLoot = createLoot(
+      scene,
+      enemy.sprite.x,
+      enemy.sprite.y,
+      lootType,
+    );
 
     loot.push(droppedLoot);
 
