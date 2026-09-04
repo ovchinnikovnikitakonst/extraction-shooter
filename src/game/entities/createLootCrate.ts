@@ -1,6 +1,19 @@
 import * as Phaser from "phaser";
 
 import type { LootCrate } from "./lootCrate";
+import type { ItemType } from "../inventory/types";
+
+const getRandomLootType = (): ItemType => {
+  const roll = Math.random();
+
+  if (roll < 0.25) return "scrap";
+  if (roll < 0.45) return "ammo";
+  if (roll < 0.6) return "medkit";
+  if (roll < 0.75) return "electronics";
+  if (roll < 0.9) return "food";
+
+  return "valuable";
+};
 
 export const createLootCrate = (
   scene: Phaser.Scene,
@@ -14,5 +27,6 @@ export const createLootCrate = (
   return {
     sprite,
     opened: false,
+    lootType: getRandomLootType(),
   };
 };
