@@ -39,13 +39,23 @@ export const openLootCrate = ({
     };
   }
 
-  const nextInventory = addItemToInventory(inventory, crate.lootType, 1);
+  let nextInventory = inventory;
 
-  if (nextInventory === inventory) {
-    return {
-      inventory,
-      opened: false,
-    };
+  for (const item of crate.items) {
+    const updatedInventory = addItemToInventory(
+      nextInventory,
+      item.type,
+      item.amount,
+    );
+
+    if (updatedInventory === nextInventory) {
+      return {
+        inventory,
+        opened: false,
+      };
+    }
+
+    nextInventory = updatedInventory;
   }
 
   crate.opened = true;

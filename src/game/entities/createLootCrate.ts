@@ -1,7 +1,7 @@
 import * as Phaser from "phaser";
 
 import type { LootCrate } from "./lootCrate";
-import type { ItemType } from "../inventory/types";
+import type { InventoryItem, ItemType } from "../inventory/types";
 
 const getRandomLootType = (): ItemType => {
   const roll = Math.random();
@@ -13,6 +13,30 @@ const getRandomLootType = (): ItemType => {
   if (roll < 0.9) return "food";
 
   return "valuable";
+};
+
+const createLootCrateItems = (): InventoryItem[] => {
+  const itemCount = Phaser.Math.Between(1, 3);
+
+  const items: InventoryItem[] = [];
+
+  for (let i = 0; i < itemCount; i += 1) {
+    const type = getRandomLootType();
+
+    const existingItem = items.find((item) => item.type === type);
+
+    if (existingItem) {
+      existingItem.amount += 1;
+      continue;
+    }
+
+    items.push({
+      type,
+      amount: 1,
+    });
+  }
+
+  return items;
 };
 
 export const createLootCrate = (
@@ -27,6 +51,6 @@ export const createLootCrate = (
   return {
     sprite,
     opened: false,
-    lootType: getRandomLootType(),
+    items: createLootCrateItems(),
   };
 };
