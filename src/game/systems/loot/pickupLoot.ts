@@ -34,10 +34,25 @@ export const pickupLoot = ({
   });
 
   if (!item) {
-    return inventory;
+    return {
+      inventory,
+      pickedUp: false,
+    };
+  }
+
+  const nextInventory = addItemToInventory(inventory, item.type, 1);
+
+  if (nextInventory === inventory) {
+    return {
+      inventory,
+      pickedUp: false,
+    };
   }
 
   item.sprite.destroy();
 
-  return addItemToInventory(inventory, item.type, 1);
+  return {
+    inventory: nextInventory,
+    pickedUp: true,
+  };
 };

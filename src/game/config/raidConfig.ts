@@ -47,4 +47,8 @@ export const RAID_CONFIG = {
   medkit: {
     healAmount: 30,
   },
+
+  inventory: {
+    maxSlots: 6,
+  },
 } as const;

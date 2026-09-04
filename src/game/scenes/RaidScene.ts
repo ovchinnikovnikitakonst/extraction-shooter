@@ -24,8 +24,9 @@ import {
   addItemToInventory,
   createRaidInventory,
   getItemAmount,
-  RaidInventory,
 } from "../inventory/raidInventory";
+
+import type { RaidInventory } from "../inventory/raidInventory";
 import { createInventoryPanel } from "../ui/createInventoryPanel";
 import { stopRaidActors } from "../systems/raid/stopRaidActors";
 
@@ -168,6 +169,14 @@ export class RaidScene extends Scene {
   }
 
   update() {
+    if (this.raidStatus !== "playing") {
+      if (Phaser.Input.Keyboard.JustDown(this.actionKey)) {
+        this.scene.start("StashScene");
+      }
+
+      return;
+    }
+
     if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
       this.toggleInventory();
     }
@@ -179,14 +188,6 @@ export class RaidScene extends Scene {
 
     if (Phaser.Input.Keyboard.JustDown(this.healKey)) {
       this.useMedkit();
-    }
-
-    if (this.raidStatus !== "playing") {
-      if (Phaser.Input.Keyboard.JustDown(this.actionKey)) {
-        this.scene.start("StashScene");
-      }
-
-      return;
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.actionKey)) {
@@ -306,14 +307,18 @@ export class RaidScene extends Scene {
   }
 
   private tryPickupLoot() {
-    this.raidInventory = pickupLoot({
+    const result = pickupLoot({
       player: this.player,
       loot: this.loot,
       inventory: this.raidInventory,
       pickupDistance: RAID_CONFIG.loot.pickupDistance,
     });
 
-    this.updateLootHud();
+    this.raidInventory = result.inventory;
+
+    if (result.pickedUp) {
+      this.updateLootHud();
+    }
   }
 
   private updateLootHud() {
@@ -375,11 +380,25 @@ export class RaidScene extends Scene {
 
     const medkitAmount = getItemAmount(this.raidInventory, "medkit");
 
-    this.inventoryPanel.scrapAmountText.setText(`x${scrapAmount}`);
+    const electronicsAmount = getItemAmount(this.raidInventory, "electronics");
 
-    this.inventoryPanel.ammoAmountText.setText(`x${ammoAmount}`);
+    const foodAmount = getItemAmount(this.raidInventory, "food");
 
-    this.inventoryPanel.medkitAmountText.setText(`x${medkitAmount}`);
+    const valuableAmount = getItemAmount(this.raidInventory, "valuable");
+
+    this.inventoryPanel.scrapSlot.amountText.setText(`x${scrapAmount}`);
+
+    this.inventoryPanel.ammoSlot.amountText.setText(`x${ammoAmount}`);
+
+    this.inventoryPanel.medkitSlot.amountText.setText(`x${medkitAmount}`);
+
+    this.inventoryPanel.electronicsSlot.amountText.setText(
+      `x${electronicsAmount}`,
+    );
+
+    this.inventoryPanel.foodSlot.amountText.setText(`x${foodAmount}`);
+
+    this.inventoryPanel.valuableSlot.amountText.setText(`x${valuableAmount}`);
   }
 
   private useMedkit() {

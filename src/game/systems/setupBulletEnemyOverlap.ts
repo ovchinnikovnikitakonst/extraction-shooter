@@ -31,7 +31,18 @@ export const setupBulletEnemyOverlap = (
 
     const roll = Math.random();
 
-    const lootType = roll < 0.4 ? "scrap" : roll < 0.8 ? "ammo" : "medkit";
+    const lootType =
+      roll < 0.25
+        ? "scrap"
+        : roll < 0.45
+          ? "ammo"
+          : roll < 0.6
+            ? "medkit"
+            : roll < 0.75
+              ? "electronics"
+              : roll < 0.9
+                ? "food"
+                : "valuable";
 
     const droppedLoot = createLoot(
       scene,
