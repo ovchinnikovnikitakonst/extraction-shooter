@@ -40,6 +40,10 @@ import { useMedkit } from "../systems/player/useMedkit";
 
 import { pickupLoot } from "../systems/loot/pickupLoot";
 
+import type { LootCrate } from "../entities/lootCrate";
+import { createLootCrate } from "../entities/createLootCrate";
+import { openLootCrate } from "../systems/loot/openLootCrate";
+
 export class RaidScene extends Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private bullets!: Phaser.Physics.Arcade.Group;
@@ -76,6 +80,8 @@ export class RaidScene extends Scene {
     D: Phaser.Input.Keyboard.Key;
   };
 
+  private lootCrates: LootCrate[] = [];
+
   private magazineAmmo: number = RAID_CONFIG.weapon.magazineSize;
   private actionKey!: Phaser.Input.Keyboard.Key;
   constructor() {
@@ -84,6 +90,7 @@ export class RaidScene extends Scene {
 
   init() {
     this.loot = [];
+    this.lootCrates = [];
     this.magazineAmmo = RAID_CONFIG.weapon.magazineSize;
 
     this.raidInventory = addItemToInventory(
@@ -116,6 +123,12 @@ export class RaidScene extends Scene {
     const spawn = RAID_CONFIG.player.spawn;
 
     this.player = createPlayer(this, spawn.x, spawn.y);
+
+    this.lootCrates = [
+      createLootCrate(this, 600, 500),
+      createLootCrate(this, 1200, 900),
+      createLootCrate(this, 1600, 1500),
+    ];
 
     const hud = createRaidHud(this);
 
@@ -204,6 +217,10 @@ export class RaidScene extends Scene {
     if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
       if (this.isPlayerInExtractionZone()) {
         this.extract();
+        return;
+      }
+
+      if (this.tryOpenLootCrate()) {
         return;
       }
 
@@ -427,5 +444,28 @@ export class RaidScene extends Scene {
     this.raidInventory = result.inventory;
 
     this.updateLootHud();
+  }
+
+  private tryOpenLootCrate() {
+    for (const crate of this.lootCrates) {
+      const result = openLootCrate({
+        player: this.player,
+        crate,
+        inventory: this.raidInventory,
+        interactDistance: RAID_CONFIG.lootCrate.interactDistance,
+      });
+
+      if (!result.opened) {
+        continue;
+      }
+
+      this.raidInventory = result.inventory;
+
+      this.updateLootHud();
+
+      return true;
+    }
+
+    return false;
   }
 }

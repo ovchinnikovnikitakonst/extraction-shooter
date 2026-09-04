@@ -51,4 +51,8 @@ export const RAID_CONFIG = {
   inventory: {
     maxSlots: 6,
   },
+
+  lootCrate: {
+    interactDistance: 90,
+  },
 } as const;
