@@ -1,5 +1,7 @@
 import * as Phaser from "phaser";
 
+import type { RaidInventory } from "../inventory/raidInventory";
+
 type InventorySlot = {
   background: Phaser.GameObjects.Rectangle;
   nameText: Phaser.GameObjects.Text;
@@ -8,156 +10,150 @@ type InventorySlot = {
 
 type CreateInventoryPanelParams = {
   scene: Phaser.Scene;
-};
-
-type InventoryPanel = {
-  background: Phaser.GameObjects.Rectangle;
-  title: Phaser.GameObjects.Text;
-  closeText: Phaser.GameObjects.Text;
-
-  scrapSlot: InventorySlot;
-  ammoSlot: InventorySlot;
-  medkitSlot: InventorySlot;
-  electronicsSlot: InventorySlot;
-  foodSlot: InventorySlot;
-  valuableSlot: InventorySlot;
-
-  setVisible: (visible: boolean) => void;
-};
-
-const createInventorySlot = (
-  scene: Phaser.Scene,
-  x: number,
-  y: number,
-  label: string,
-): InventorySlot => {
-  const background = scene.add
-    .rectangle(x, y, 120, 96, 0x222222, 0.9)
-    .setStrokeStyle(2, 0x777777)
-    .setScrollFactor(0);
-
-  const nameText = scene.add
-    .text(x, y - 22, label, {
-      fontSize: "14px",
-      color: "#ffffff",
-      fontFamily: "monospace",
-    })
-    .setOrigin(0.5)
-    .setScrollFactor(0);
-
-  const amountText = scene.add
-    .text(x, y + 18, "x0", {
-      fontSize: "18px",
-      color: "#ffffff",
-      fontFamily: "monospace",
-    })
-    .setOrigin(0.5)
-    .setScrollFactor(0);
-
-  return {
-    background,
-    nameText,
-    amountText,
-  };
+  maxSlots: number;
 };
 
 export const createInventoryPanel = ({
   scene,
-}: CreateInventoryPanelParams): InventoryPanel => {
+  maxSlots,
+}: CreateInventoryPanelParams) => {
   const centerX = scene.scale.width / 2;
   const centerY = scene.scale.height / 2;
 
-  const panelWidth = 540;
-  const panelHeight = 340;
+  const panelWidth = 620;
+  const panelHeight = 430;
 
   const background = scene.add
-    .rectangle(centerX, centerY, panelWidth, panelHeight, 0x000000, 0.82)
+    .rectangle(centerX, centerY, panelWidth, panelHeight, 0x000000, 0.88)
     .setStrokeStyle(2, 0x555555)
-    .setScrollFactor(0);
+    .setScrollFactor(0)
+    .setDepth(1000);
 
   const title = scene.add
-    .text(centerX, centerY - 132, "INVENTORY", {
+    .text(centerX, centerY - 180, "INVENTORY", {
       fontSize: "24px",
       color: "#ffffff",
       fontFamily: "monospace",
     })
     .setOrigin(0.5)
-    .setScrollFactor(0);
+    .setScrollFactor(0)
+    .setDepth(1001);
 
-  const slotWidth = 120;
-  const slotHeight = 96;
-
-  const gapX = 30;
-  const gapY = 20;
-
-  const gridWidth = slotWidth * 3 + gapX * 2;
-
-  const startX = centerX - gridWidth / 2 + slotWidth / 2;
-
-  const row1Y = centerY - 45;
-
-  const row2Y = row1Y + slotHeight + gapY;
-
-  const col1X = startX;
-
-  const col2X = startX + slotWidth + gapX;
-
-  const col3X = startX + (slotWidth + gapX) * 2;
-
-  const scrapSlot = createInventorySlot(scene, col1X, row1Y, "SCRAP");
-
-  const ammoSlot = createInventorySlot(scene, col2X, row1Y, "AMMO");
-
-  const medkitSlot = createInventorySlot(scene, col3X, row1Y, "MEDKIT");
-
-  const electronicsSlot = createInventorySlot(
-    scene,
-    col1X,
-    row2Y,
-    "ELECTRONICS",
-  );
-
-  const foodSlot = createInventorySlot(scene, col2X, row2Y, "FOOD");
-
-  const valuableSlot = createInventorySlot(scene, col3X, row2Y, "VALUABLE");
-
-  const closeText = scene.add
-    .text(centerX, centerY + 138, "Press Tab to close", {
+  const slotsText = scene.add
+    .text(centerX, centerY - 145, "", {
       fontSize: "14px",
       color: "#aaaaaa",
       fontFamily: "monospace",
     })
     .setOrigin(0.5)
-    .setScrollFactor(0);
+    .setScrollFactor(0)
+    .setDepth(1001);
+
+  const closeText = scene.add
+    .text(centerX, centerY + 185, "Press Tab to close", {
+      fontSize: "14px",
+      color: "#aaaaaa",
+      fontFamily: "monospace",
+    })
+    .setOrigin(0.5)
+    .setScrollFactor(0)
+    .setDepth(1001);
+
+  const inventorySlots: InventorySlot[] = [];
+
+  const columns = 4;
+
+  const slotWidth = 120;
+  const slotHeight = 80;
+
+  const gap = 16;
+
+  const gridWidth = slotWidth * columns + gap * (columns - 1);
+
+  const startX = centerX - gridWidth / 2 + slotWidth / 2;
+
+  const startY = centerY - 90;
+
+  for (let index = 0; index < maxSlots; index++) {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+
+    const x = startX + column * (slotWidth + gap);
+
+    const y = startY + row * (slotHeight + gap);
+
+    const slotBackground = scene.add
+      .rectangle(x, y, slotWidth, slotHeight, 0x222222, 0.9)
+      .setStrokeStyle(2, 0x555555)
+      .setScrollFactor(0)
+      .setDepth(1001);
+
+    const nameText = scene.add
+      .text(x, y - 16, "EMPTY", {
+        fontSize: "13px",
+        color: "#777777",
+        fontFamily: "monospace",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1002);
+
+    const amountText = scene.add
+      .text(x, y + 16, "", {
+        fontSize: "16px",
+        color: "#ffffff",
+        fontFamily: "monospace",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1002);
+
+    inventorySlots.push({
+      background: slotBackground,
+      nameText,
+      amountText,
+    });
+  }
+
+  const update = (inventory: RaidInventory) => {
+    slotsText.setText(`Slots: ${inventory.length}/${maxSlots}`);
+
+    for (let index = 0; index < inventorySlots.length; index++) {
+      const slot = inventorySlots[index];
+      const item = inventory[index];
+
+      if (!item) {
+        slot.nameText.setText("EMPTY");
+        slot.nameText.setColor("#777777");
+
+        slot.amountText.setText("");
+
+        slot.background.setStrokeStyle(2, 0x555555);
+
+        continue;
+      }
+
+      slot.nameText.setText(item.type.toUpperCase());
+
+      slot.nameText.setColor("#ffffff");
+
+      slot.amountText.setText(`x${item.amount}`);
+
+      slot.background.setStrokeStyle(2, 0x999999);
+    }
+  };
 
   const allObjects = [
     background,
     title,
+    slotsText,
     closeText,
 
-    scrapSlot.background,
-    scrapSlot.nameText,
-    scrapSlot.amountText,
-
-    ammoSlot.background,
-    ammoSlot.nameText,
-    ammoSlot.amountText,
-
-    medkitSlot.background,
-    medkitSlot.nameText,
-    medkitSlot.amountText,
-
-    electronicsSlot.background,
-    electronicsSlot.nameText,
-    electronicsSlot.amountText,
-
-    foodSlot.background,
-    foodSlot.nameText,
-    foodSlot.amountText,
-
-    valuableSlot.background,
-    valuableSlot.nameText,
-    valuableSlot.amountText,
+    ...inventorySlots.flatMap((slot) => [
+      slot.background,
+      slot.nameText,
+      slot.amountText,
+    ]),
   ];
 
   const setVisible = (visible: boolean) => {
@@ -169,17 +165,7 @@ export const createInventoryPanel = ({
   setVisible(false);
 
   return {
-    background,
-    title,
-    closeText,
-
-    scrapSlot,
-    ammoSlot,
-    medkitSlot,
-    electronicsSlot,
-    foodSlot,
-    valuableSlot,
-
+    update,
     setVisible,
   };
 };

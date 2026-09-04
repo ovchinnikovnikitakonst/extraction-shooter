@@ -43,6 +43,7 @@ import { pickupLoot } from "../systems/loot/pickupLoot";
 import type { LootCrate } from "../entities/lootCrate";
 import { createLootCrate } from "../entities/createLootCrate";
 import { openLootCrate } from "../systems/loot/openLootCrate";
+import { createLootCratePanel } from "../ui/createLootCratePanel";
 
 export class RaidScene extends Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -71,6 +72,8 @@ export class RaidScene extends Scene {
 
   private inventoryPanel!: ReturnType<typeof createInventoryPanel>;
 
+  private lootCratePanel!: ReturnType<typeof createLootCratePanel>;
+
   private healKey!: Phaser.Input.Keyboard.Key;
 
   private wasd!: {
@@ -81,6 +84,7 @@ export class RaidScene extends Scene {
   };
 
   private lootCrates: LootCrate[] = [];
+  private activeLootCrate: LootCrate | null = null;
 
   private magazineAmmo: number = RAID_CONFIG.weapon.magazineSize;
   private actionKey!: Phaser.Input.Keyboard.Key;
@@ -92,6 +96,7 @@ export class RaidScene extends Scene {
     this.loot = [];
     this.lootCrates = [];
     this.magazineAmmo = RAID_CONFIG.weapon.magazineSize;
+    this.activeLootCrate = null;
 
     this.raidInventory = addItemToInventory(
       createRaidInventory(),
@@ -140,6 +145,15 @@ export class RaidScene extends Scene {
 
     this.inventoryPanel = createInventoryPanel({
       scene: this,
+      maxSlots: RAID_CONFIG.inventory.maxSlots,
+    });
+
+    this.lootCratePanel = createLootCratePanel({
+      scene: this,
+
+      onTakeItem: (itemIndex) => {
+        this.takeLootCrateItem(itemIndex);
+      },
     });
 
     this.enemies = createRaidEnemies(this);
@@ -186,6 +200,16 @@ export class RaidScene extends Scene {
       if (Phaser.Input.Keyboard.JustDown(this.actionKey)) {
         this.scene.start("StashScene");
       }
+
+      return;
+    }
+
+    if (
+      this.activeLootCrate &&
+      Phaser.Input.Keyboard.JustDown(this.interactKey)
+    ) {
+      this.lootCratePanel.setVisible(false);
+      this.activeLootCrate = null;
 
       return;
     }
@@ -391,31 +415,7 @@ export class RaidScene extends Scene {
     }
   }
   private updateInventoryPanel() {
-    const scrapAmount = getItemAmount(this.raidInventory, "scrap");
-
-    const ammoAmount = getItemAmount(this.raidInventory, "ammo");
-
-    const medkitAmount = getItemAmount(this.raidInventory, "medkit");
-
-    const electronicsAmount = getItemAmount(this.raidInventory, "electronics");
-
-    const foodAmount = getItemAmount(this.raidInventory, "food");
-
-    const valuableAmount = getItemAmount(this.raidInventory, "valuable");
-
-    this.inventoryPanel.scrapSlot.amountText.setText(`x${scrapAmount}`);
-
-    this.inventoryPanel.ammoSlot.amountText.setText(`x${ammoAmount}`);
-
-    this.inventoryPanel.medkitSlot.amountText.setText(`x${medkitAmount}`);
-
-    this.inventoryPanel.electronicsSlot.amountText.setText(
-      `x${electronicsAmount}`,
-    );
-
-    this.inventoryPanel.foodSlot.amountText.setText(`x${foodAmount}`);
-
-    this.inventoryPanel.valuableSlot.amountText.setText(`x${valuableAmount}`);
+    this.inventoryPanel.update(this.raidInventory);
   }
 
   private useMedkit() {
@@ -446,22 +446,74 @@ export class RaidScene extends Scene {
     this.updateLootHud();
   }
 
+  private takeLootCrateItem(itemIndex: number) {
+    if (!this.activeLootCrate) {
+      return;
+    }
+
+    const item = this.activeLootCrate.items[itemIndex];
+
+    if (!item) {
+      return;
+    }
+
+    const beforeAmount = getItemAmount(this.raidInventory, item.type);
+
+    const nextInventory = addItemToInventory(
+      this.raidInventory,
+      item.type,
+      item.amount,
+    );
+
+    const afterAmount = getItemAmount(nextInventory, item.type);
+
+    const addedAmount = afterAmount - beforeAmount;
+
+    if (addedAmount <= 0) {
+      return;
+    }
+
+    this.raidInventory = nextInventory;
+
+    item.amount -= addedAmount;
+
+    if (item.amount <= 0) {
+      this.activeLootCrate.items.splice(itemIndex, 1);
+    }
+
+    this.updateLootHud();
+    this.updateInventoryPanel();
+
+    if (this.activeLootCrate.items.length === 0) {
+      this.activeLootCrate.opened = true;
+      this.activeLootCrate.sprite.setFillStyle(0x444444, 1);
+
+      this.lootCratePanel.setVisible(false);
+      this.activeLootCrate = null;
+
+      return;
+    }
+
+    this.lootCratePanel.showCrate(this.activeLootCrate);
+  }
+
   private tryOpenLootCrate() {
     for (const crate of this.lootCrates) {
       const result = openLootCrate({
         player: this.player,
         crate,
-        inventory: this.raidInventory,
         interactDistance: RAID_CONFIG.lootCrate.interactDistance,
       });
 
-      if (!result.opened) {
+      if (!result.opened || !result.crate) {
         continue;
       }
 
-      this.raidInventory = result.inventory;
+      this.activeLootCrate = result.crate;
 
-      this.updateLootHud();
+      this.lootCratePanel.showCrate(this.activeLootCrate);
+
+      this.player.setVelocity(0, 0);
 
       return true;
     }
