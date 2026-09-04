@@ -25,6 +25,7 @@ import {
   createRaidInventory,
   getItemAmount,
   RaidInventory,
+  removeItemFromInventory,
 } from "../inventory/raidInventory";
 import { createInventoryPanel } from "../ui/createInventoryPanel";
 
@@ -59,6 +60,8 @@ export class RaidScene extends Scene {
   private inventoryKey!: Phaser.Input.Keyboard.Key;
 
   private inventoryPanel!: ReturnType<typeof createInventoryPanel>;
+
+  private healKey!: Phaser.Input.Keyboard.Key;
 
   private wasd!: {
     W: Phaser.Input.Keyboard.Key;
@@ -169,6 +172,10 @@ export class RaidScene extends Scene {
       return;
     }
 
+    if (Phaser.Input.Keyboard.JustDown(this.healKey)) {
+      this.useMedkit();
+    }
+
     this.updatePlayerMovement();
     this.updatePlayerAim();
 
@@ -203,6 +210,7 @@ export class RaidScene extends Scene {
     this.restartKey = keyboard.addKey("R");
     this.interactKey = keyboard.addKey("E");
     this.inventoryKey = keyboard.addKey("TAB");
+    this.healKey = keyboard.addKey("H");
   }
 
   private setupShooting() {
@@ -306,7 +314,11 @@ export class RaidScene extends Scene {
 
     const ammoAmount = getItemAmount(this.raidInventory, "ammo");
 
-    this.lootText.setText(`Scrap: ${scrapAmount}\nAmmo: ${ammoAmount}`);
+    const medkitAmount = getItemAmount(this.raidInventory, "medkit");
+
+    this.lootText.setText(
+      `Scrap: ${scrapAmount}\nAmmo: ${ammoAmount}\nMedkit: ${medkitAmount}`,
+    );
   }
 
   private isPlayerInExtractionZone() {
@@ -363,5 +375,31 @@ export class RaidScene extends Scene {
     this.inventoryPanel.ammoAmountText.setText(`x${ammoAmount}`);
 
     this.inventoryPanel.medkitAmountText.setText(`x${medkitAmount}`);
+  }
+
+  private useMedkit() {
+    const medkitAmount = getItemAmount(this.raidInventory, "medkit");
+
+    if (medkitAmount <= 0) {
+      return;
+    }
+
+    if (this.playerState.hp >= this.playerState.maxHp) {
+      return;
+    }
+
+    this.raidInventory = removeItemFromInventory(
+      this.raidInventory,
+      "medkit",
+      1,
+    );
+
+    this.playerState = {
+      ...this.playerState,
+      hp: Math.min(this.playerState.maxHp, this.playerState.hp + 30),
+    };
+
+    this.updateHealthHud();
+    this.updateLootHud();
   }
 }
