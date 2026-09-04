@@ -43,4 +43,8 @@ export const RAID_CONFIG = {
   weapon: {
     magazineSize: 5,
   },
+
+  medkit: {
+    healAmount: 30,
+  },
 } as const;

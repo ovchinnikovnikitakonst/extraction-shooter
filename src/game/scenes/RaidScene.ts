@@ -25,13 +25,19 @@ import {
   createRaidInventory,
   getItemAmount,
   RaidInventory,
-  removeItemFromInventory,
 } from "../inventory/raidInventory";
 import { createInventoryPanel } from "../ui/createInventoryPanel";
+import { stopRaidActors } from "../systems/raid/stopRaidActors";
 
 import { createPlayerState } from "../systems/playerState";
 
 import { getMovementVelocity } from "../systems/playerMovement";
+
+import { reloadWeapon } from "../systems/weapon/reloadWeapon";
+
+import { useMedkit } from "../systems/player/useMedkit";
+
+import { pickupLoot } from "../systems/loot/pickupLoot";
 
 export class RaidScene extends Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -50,7 +56,6 @@ export class RaidScene extends Scene {
   private healthText!: Phaser.GameObjects.Text;
   private lootText!: Phaser.GameObjects.Text;
 
-  private restartKey!: Phaser.Input.Keyboard.Key;
   private interactKey!: Phaser.Input.Keyboard.Key;
 
   private extractionZone!: Phaser.GameObjects.Rectangle;
@@ -70,8 +75,8 @@ export class RaidScene extends Scene {
     D: Phaser.Input.Keyboard.Key;
   };
 
-  private magazineAmmo = RAID_CONFIG.weapon.magazineSize;
-  private actionRKey!: Phaser.Input.Keyboard.Key;
+  private magazineAmmo: number = RAID_CONFIG.weapon.magazineSize;
+  private actionKey!: Phaser.Input.Keyboard.Key;
   constructor() {
     super("RaidScene");
   }
@@ -163,14 +168,6 @@ export class RaidScene extends Scene {
   }
 
   update() {
-    if (this.raidStatus !== "playing") {
-      if (Phaser.Input.Keyboard.JustDown(this.restartKey)) {
-        this.scene.start("StashScene");
-      }
-
-      return;
-    }
-
     if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
       this.toggleInventory();
     }
@@ -185,14 +182,14 @@ export class RaidScene extends Scene {
     }
 
     if (this.raidStatus !== "playing") {
-      if (Phaser.Input.Keyboard.JustDown(this.actionRKey)) {
+      if (Phaser.Input.Keyboard.JustDown(this.actionKey)) {
         this.scene.start("StashScene");
       }
 
       return;
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.actionRKey)) {
+    if (Phaser.Input.Keyboard.JustDown(this.actionKey)) {
       this.reloadWeapon();
     }
 
@@ -227,11 +224,10 @@ export class RaidScene extends Scene {
       D: keyboard.addKey("D"),
     };
 
-    this.restartKey = keyboard.addKey("R");
     this.interactKey = keyboard.addKey("E");
     this.inventoryKey = keyboard.addKey("TAB");
     this.healKey = keyboard.addKey("H");
-    this.actionRKey = keyboard.addKey("R");
+    this.actionKey = keyboard.addKey("R");
   }
 
   private setupShooting() {
@@ -298,13 +294,7 @@ export class RaidScene extends Scene {
   private killPlayer() {
     this.raidStatus = "dead";
 
-    this.player.setVelocity(0, 0);
-
-    for (const enemy of this.enemies) {
-      if (enemy.sprite.active) {
-        enemy.sprite.setVelocity(0, 0);
-      }
-    }
+    stopRaidActors(this.player, this.enemies);
 
     this.player.setAlpha(0.4);
 
@@ -316,30 +306,12 @@ export class RaidScene extends Scene {
   }
 
   private tryPickupLoot() {
-    const pickupDistance = RAID_CONFIG.loot.pickupDistance;
-
-    const loot = this.loot.find((item) => {
-      if (!item.sprite.active) {
-        return false;
-      }
-
-      const distance = Phaser.Math.Distance.Between(
-        this.player.x,
-        this.player.y,
-        item.sprite.x,
-        item.sprite.y,
-      );
-
-      return distance <= pickupDistance;
+    this.raidInventory = pickupLoot({
+      player: this.player,
+      loot: this.loot,
+      inventory: this.raidInventory,
+      pickupDistance: RAID_CONFIG.loot.pickupDistance,
     });
-
-    if (!loot) {
-      return;
-    }
-
-    this.raidInventory = addItemToInventory(this.raidInventory, loot.type, 1);
-
-    loot.sprite.destroy();
 
     this.updateLootHud();
   }
@@ -378,13 +350,7 @@ export class RaidScene extends Scene {
 
     addInventoryToStash(this.raidInventory);
 
-    this.player.setVelocity(0, 0);
-
-    for (const enemy of this.enemies) {
-      if (enemy.sprite.active) {
-        enemy.sprite.setVelocity(0, 0);
-      }
-    }
+    stopRaidActors(this.player, this.enemies);
 
     showRaidResult({
       scene: this,
@@ -417,55 +383,29 @@ export class RaidScene extends Scene {
   }
 
   private useMedkit() {
-    const medkitAmount = getItemAmount(this.raidInventory, "medkit");
+    const result = useMedkit({
+      playerState: this.playerState,
+      inventory: this.raidInventory,
+      healAmount: RAID_CONFIG.medkit.healAmount,
+    });
 
-    if (medkitAmount <= 0) {
-      return;
-    }
-
-    if (this.playerState.hp >= this.playerState.maxHp) {
-      return;
-    }
-
-    this.raidInventory = removeItemFromInventory(
-      this.raidInventory,
-      "medkit",
-      1,
-    );
-
-    this.playerState = {
-      ...this.playerState,
-      hp: Math.min(this.playerState.maxHp, this.playerState.hp + 30),
-    };
+    this.playerState = result.playerState;
+    this.raidInventory = result.inventory;
 
     this.updateHealthHud();
     this.updateLootHud();
   }
 
   private reloadWeapon() {
-    const magazineSize = RAID_CONFIG.weapon.magazineSize;
+    const result = reloadWeapon({
+      magazineAmmo: this.magazineAmmo,
 
-    if (this.magazineAmmo >= magazineSize) {
-      return;
-    }
+      inventory: this.raidInventory,
+    });
 
-    const reserveAmmo = getItemAmount(this.raidInventory, "ammo");
+    this.magazineAmmo = result.magazineAmmo;
 
-    if (reserveAmmo <= 0) {
-      return;
-    }
-
-    const missingAmmo = magazineSize - this.magazineAmmo;
-
-    const ammoToLoad = Math.min(missingAmmo, reserveAmmo);
-
-    this.magazineAmmo += ammoToLoad;
-
-    this.raidInventory = removeItemFromInventory(
-      this.raidInventory,
-      "ammo",
-      ammoToLoad,
-    );
+    this.raidInventory = result.inventory;
 
     this.updateLootHud();
   }
