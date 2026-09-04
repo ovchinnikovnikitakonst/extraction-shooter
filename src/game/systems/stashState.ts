@@ -51,3 +51,17 @@ export const sellAllStashItems = () => {
 
   return totalValue;
 };
+
+export const sellStashItem = (type: ItemType) => {
+  const item = stashState.find((stashItem) => stashItem.type === type);
+
+  if (!item) {
+    return 0;
+  }
+
+  const value = item.amount * ITEM_CONFIG[type].value;
+
+  stashState = stashState.filter((stashItem) => stashItem.type !== type);
+
+  return value;
+};

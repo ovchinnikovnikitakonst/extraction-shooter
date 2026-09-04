@@ -1,7 +1,11 @@
 import * as Phaser from "phaser";
 import { Scene } from "phaser";
 
-import { getStashItemAmount, sellAllStashItems } from "../systems/stashState";
+import {
+  getStashItemAmount,
+  sellAllStashItems,
+  sellStashItem,
+} from "../systems/stashState";
 
 import { getMoney, addMoney } from "../systems/moneyState";
 
@@ -47,6 +51,25 @@ export class StashScene extends Scene {
 
     const centerX = this.scale.width / 2;
 
+    const makeSellable = (
+      slot: ReturnType<typeof createInventorySlot>,
+      type: keyof typeof ITEM_CONFIG,
+    ) => {
+      slot.background
+        .setInteractive({ useHandCursor: true })
+        .on("pointerdown", () => {
+          const soldValue = sellStashItem(type);
+
+          if (soldValue <= 0) {
+            return;
+          }
+
+          addMoney(soldValue);
+
+          this.scene.restart();
+        });
+    };
+
     this.add
       .text(centerX, 220, "STASH", {
         fontSize: "48px",
@@ -68,13 +91,29 @@ export class StashScene extends Scene {
       })
       .setOrigin(0.5);
 
-    createInventorySlot({
+    const scrapSlot = createInventorySlot({
       scene: this,
       x: centerX - 150,
       y: 390,
       label: "SCRAP",
       amount: scrapAmount,
     });
+
+    makeSellable(scrapSlot, "scrap");
+
+    scrapSlot.background
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => {
+        const soldValue = sellStashItem("scrap");
+
+        if (soldValue <= 0) {
+          return;
+        }
+
+        addMoney(soldValue);
+
+        this.scene.restart();
+      });
 
     this.add
       .text(centerX - 150, 455, `$${scrapValue}`, {
@@ -83,13 +122,15 @@ export class StashScene extends Scene {
       })
       .setOrigin(0.5);
 
-    createInventorySlot({
+    const ammoSlot = createInventorySlot({
       scene: this,
       x: centerX,
       y: 390,
       label: "AMMO",
       amount: ammoAmount,
     });
+
+    makeSellable(ammoSlot, "ammo");
 
     this.add
       .text(centerX, 455, `$${ammoValue}`, {
@@ -98,7 +139,7 @@ export class StashScene extends Scene {
       })
       .setOrigin(0.5);
 
-    createInventorySlot({
+    const medkitSlot = createInventorySlot({
       scene: this,
       x: centerX + 150,
       y: 390,
@@ -106,6 +147,7 @@ export class StashScene extends Scene {
       amount: medkitAmount,
     });
 
+    makeSellable(medkitSlot, "medkit");
     this.add
       .text(centerX + 150, 455, `$${medkitValue}`, {
         fontSize: "16px",
@@ -113,13 +155,15 @@ export class StashScene extends Scene {
       })
       .setOrigin(0.5);
 
-    createInventorySlot({
+    const electronicsSlot = createInventorySlot({
       scene: this,
       x: centerX - 150,
       y: 530,
       label: "ELECTRONICS",
       amount: electronicsAmount,
     });
+
+    makeSellable(electronicsSlot, "electronics");
 
     this.add
       .text(centerX - 150, 595, `$${electronicsValue}`, {
@@ -128,13 +172,15 @@ export class StashScene extends Scene {
       })
       .setOrigin(0.5);
 
-    createInventorySlot({
+    const foodSlot = createInventorySlot({
       scene: this,
       x: centerX,
       y: 530,
       label: "FOOD",
       amount: foodAmount,
     });
+
+    makeSellable(foodSlot, "food");
 
     this.add
       .text(centerX, 595, `$${foodValue}`, {
@@ -143,13 +189,15 @@ export class StashScene extends Scene {
       })
       .setOrigin(0.5);
 
-    createInventorySlot({
+    const valuableSlot = createInventorySlot({
       scene: this,
       x: centerX + 150,
       y: 530,
       label: "VALUABLE",
       amount: valuableAmount,
     });
+
+    makeSellable(valuableSlot, "valuable");
 
     this.add
       .text(centerX + 150, 595, `$${valuableValue}`, {
