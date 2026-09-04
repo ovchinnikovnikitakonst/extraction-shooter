@@ -12,6 +12,7 @@ export const RAID_CONFIG = {
     },
     speed: 250,
     hp: 100,
+    startingAmmo: 10,
   },
 
   enemy: {
@@ -37,5 +38,9 @@ export const RAID_CONFIG = {
     y: 1800,
     size: 120,
     interactDistance: 80,
+  },
+
+  weapon: {
+    magazineSize: 5,
   },
 } as const;

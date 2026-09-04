@@ -70,13 +70,21 @@ export class RaidScene extends Scene {
     D: Phaser.Input.Keyboard.Key;
   };
 
+  private magazineAmmo = RAID_CONFIG.weapon.magazineSize;
+  private actionRKey!: Phaser.Input.Keyboard.Key;
   constructor() {
     super("RaidScene");
   }
 
   init() {
     this.loot = [];
-    this.raidInventory = createRaidInventory();
+    this.magazineAmmo = RAID_CONFIG.weapon.magazineSize;
+
+    this.raidInventory = addItemToInventory(
+      createRaidInventory(),
+      "ammo",
+      RAID_CONFIG.player.startingAmmo,
+    );
     this.inventoryOpen = false;
 
     this.playerState = createPlayerState(RAID_CONFIG.player.hp);
@@ -176,6 +184,18 @@ export class RaidScene extends Scene {
       this.useMedkit();
     }
 
+    if (this.raidStatus !== "playing") {
+      if (Phaser.Input.Keyboard.JustDown(this.actionRKey)) {
+        this.scene.start("StashScene");
+      }
+
+      return;
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.actionRKey)) {
+      this.reloadWeapon();
+    }
+
     this.updatePlayerMovement();
     this.updatePlayerAim();
 
@@ -211,6 +231,7 @@ export class RaidScene extends Scene {
     this.interactKey = keyboard.addKey("E");
     this.inventoryKey = keyboard.addKey("TAB");
     this.healKey = keyboard.addKey("H");
+    this.actionRKey = keyboard.addKey("R");
   }
 
   private setupShooting() {
@@ -219,9 +240,23 @@ export class RaidScene extends Scene {
         return;
       }
 
-      if (pointer.leftButtonDown()) {
-        shootBullet(this, this.player, this.bullets, pointer);
+      if (this.inventoryOpen) {
+        return;
       }
+
+      if (!pointer.leftButtonDown()) {
+        return;
+      }
+
+      if (this.magazineAmmo <= 0) {
+        return;
+      }
+
+      shootBullet(this, this.player, this.bullets, pointer);
+
+      this.magazineAmmo -= 1;
+
+      this.updateLootHud();
     });
   }
 
@@ -317,7 +352,11 @@ export class RaidScene extends Scene {
     const medkitAmount = getItemAmount(this.raidInventory, "medkit");
 
     this.lootText.setText(
-      `Scrap: ${scrapAmount}\nAmmo: ${ammoAmount}\nMedkit: ${medkitAmount}`,
+      [
+        `Scrap: ${scrapAmount}`,
+        `Ammo: ${this.magazineAmmo}/${ammoAmount}`,
+        `Medkit: ${medkitAmount}`,
+      ].join("\n"),
     );
   }
 
@@ -400,6 +439,34 @@ export class RaidScene extends Scene {
     };
 
     this.updateHealthHud();
+    this.updateLootHud();
+  }
+
+  private reloadWeapon() {
+    const magazineSize = RAID_CONFIG.weapon.magazineSize;
+
+    if (this.magazineAmmo >= magazineSize) {
+      return;
+    }
+
+    const reserveAmmo = getItemAmount(this.raidInventory, "ammo");
+
+    if (reserveAmmo <= 0) {
+      return;
+    }
+
+    const missingAmmo = magazineSize - this.magazineAmmo;
+
+    const ammoToLoad = Math.min(missingAmmo, reserveAmmo);
+
+    this.magazineAmmo += ammoToLoad;
+
+    this.raidInventory = removeItemFromInventory(
+      this.raidInventory,
+      "ammo",
+      ammoToLoad,
+    );
+
     this.updateLootHud();
   }
 }
