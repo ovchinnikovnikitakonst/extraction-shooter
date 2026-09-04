@@ -58,9 +58,7 @@ export class RaidScene extends Scene {
 
   private inventoryKey!: Phaser.Input.Keyboard.Key;
 
-  private inventoryBackground!: Phaser.GameObjects.Rectangle;
-  private inventoryTitle!: Phaser.GameObjects.Text;
-  private inventoryContent!: Phaser.GameObjects.Text;
+  private inventoryPanel!: ReturnType<typeof createInventoryPanel>;
 
   private wasd!: {
     W: Phaser.Input.Keyboard.Key;
@@ -110,15 +108,9 @@ export class RaidScene extends Scene {
     this.updateHealthHud();
     this.updateLootHud();
 
-    const inventoryPanel = createInventoryPanel({
+    this.inventoryPanel = createInventoryPanel({
       scene: this,
     });
-
-    this.inventoryBackground = inventoryPanel.background;
-
-    this.inventoryTitle = inventoryPanel.title;
-
-    this.inventoryContent = inventoryPanel.content;
 
     this.enemies = createRaidEnemies(this);
 
@@ -353,17 +345,12 @@ export class RaidScene extends Scene {
   private toggleInventory() {
     this.inventoryOpen = !this.inventoryOpen;
 
-    this.inventoryBackground.setVisible(this.inventoryOpen);
-
-    this.inventoryTitle.setVisible(this.inventoryOpen);
-
-    this.inventoryContent.setVisible(this.inventoryOpen);
+    this.inventoryPanel.setVisible(this.inventoryOpen);
 
     if (this.inventoryOpen) {
       this.updateInventoryPanel();
     }
   }
-
   private updateInventoryPanel() {
     const scrapAmount = getItemAmount(this.raidInventory, "scrap");
 
@@ -371,14 +358,10 @@ export class RaidScene extends Scene {
 
     const medkitAmount = getItemAmount(this.raidInventory, "medkit");
 
-    this.inventoryContent.setText(
-      [
-        `Scrap: ${scrapAmount}`,
-        `Ammo: ${ammoAmount}`,
-        `Medkit: ${medkitAmount}`,
-        "",
-        "Press Tab to close",
-      ].join("\n"),
-    );
+    this.inventoryPanel.scrapAmountText.setText(`x${scrapAmount}`);
+
+    this.inventoryPanel.ammoAmountText.setText(`x${ammoAmount}`);
+
+    this.inventoryPanel.medkitAmountText.setText(`x${medkitAmount}`);
   }
 }

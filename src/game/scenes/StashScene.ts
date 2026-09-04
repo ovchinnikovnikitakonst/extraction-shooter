@@ -2,6 +2,7 @@ import * as Phaser from "phaser";
 import { Scene } from "phaser";
 
 import { getStashItemAmount } from "../systems/stashState";
+import { createInventorySlot } from "../ui/createInventorySlot";
 
 export class StashScene extends Scene {
   private startRaidKey!: Phaser.Input.Keyboard.Key;
@@ -24,25 +25,34 @@ export class StashScene extends Scene {
       })
       .setOrigin(0.5);
 
-    this.add
-      .text(
-        this.scale.width / 2,
-        350,
-        [
-          `Scrap: ${scrapAmount}`,
-          `Ammo: ${ammoAmount}`,
-          `Medkit: ${medkitAmount}`,
-        ].join("\n"),
-        {
-          fontSize: "28px",
-          color: "#ffffff",
-          align: "center",
-        },
-      )
-      .setOrigin(0.5);
+    const centerX = this.scale.width / 2;
+
+    createInventorySlot({
+      scene: this,
+      x: centerX - 150,
+      y: 360,
+      label: "SCRAP",
+      amount: scrapAmount,
+    });
+
+    createInventorySlot({
+      scene: this,
+      x: centerX,
+      y: 360,
+      label: "AMMO",
+      amount: ammoAmount,
+    });
+
+    createInventorySlot({
+      scene: this,
+      x: centerX + 150,
+      y: 360,
+      label: "MEDKIT",
+      amount: medkitAmount,
+    });
 
     this.add
-      .text(this.scale.width / 2, 480, "Press R to start raid", {
+      .text(this.scale.width / 2, 500, "Press R to start raid", {
         fontSize: "22px",
         color: "#aaaaaa",
       })
