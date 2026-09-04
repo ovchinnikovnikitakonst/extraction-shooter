@@ -44,6 +44,7 @@ import type { LootCrate } from "../entities/lootCrate";
 import { createLootCrate } from "../entities/createLootCrate";
 import { openLootCrate } from "../systems/loot/openLootCrate";
 import { createLootCratePanel } from "../ui/createLootCratePanel";
+import { createLoot } from "../entities/createLoot";
 
 export class RaidScene extends Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -146,6 +147,10 @@ export class RaidScene extends Scene {
     this.inventoryPanel = createInventoryPanel({
       scene: this,
       maxSlots: RAID_CONFIG.inventory.maxSlots,
+
+      onDropItem: (itemIndex) => {
+        this.dropInventoryItem(itemIndex);
+      },
     });
 
     this.lootCratePanel = createLootCratePanel({
@@ -214,6 +219,11 @@ export class RaidScene extends Scene {
       return;
     }
 
+    if (this.activeLootCrate) {
+      this.player.setVelocity(0, 0);
+      return;
+    }
+
     if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
       this.toggleInventory();
     }
@@ -274,6 +284,10 @@ export class RaidScene extends Scene {
 
   private setupShooting() {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (this.inventoryOpen || this.activeLootCrate) {
+        return;
+      }
+
       if (this.raidStatus !== "playing") {
         return;
       }
@@ -519,5 +533,30 @@ export class RaidScene extends Scene {
     }
 
     return false;
+  }
+
+  private dropInventoryItem(itemIndex: number) {
+    const item = this.raidInventory[itemIndex];
+
+    if (!item) {
+      return;
+    }
+
+    const droppedLoot = createLoot(
+      this,
+      this.player.x + Phaser.Math.Between(-24, 24),
+      this.player.y + Phaser.Math.Between(-24, 24),
+      item.type,
+      item.amount,
+    );
+
+    this.loot.push(droppedLoot);
+
+    this.raidInventory = this.raidInventory.filter(
+      (_, index) => index !== itemIndex,
+    );
+
+    this.updateLootHud();
+    this.updateInventoryPanel();
   }
 }

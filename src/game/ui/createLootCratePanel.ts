@@ -1,10 +1,30 @@
 import * as Phaser from "phaser";
 
 import type { LootCrate } from "../entities/lootCrate";
+import { ITEM_CONFIG } from "../inventory/itemConfig";
 
 type CreateLootCratePanelParams = {
   scene: Phaser.Scene;
   onTakeItem: (itemIndex: number) => void;
+};
+
+const getRarityColor = (rarity: string) => {
+  switch (rarity) {
+    case "common":
+      return "#ffffff";
+
+    case "uncommon":
+      return "#4ade80";
+
+    case "rare":
+      return "#60a5fa";
+
+    case "epic":
+      return "#c084fc";
+
+    default:
+      return "#ffffff";
+  }
 };
 
 export const createLootCratePanel = ({
@@ -64,10 +84,12 @@ export const createLootCratePanel = ({
     clearItems();
 
     crate.items.forEach((item, index) => {
+      const rarity = ITEM_CONFIG[item.type].rarity;
+
       const itemText = scene.add
         .text(x - 130, y - 70 + index * 36, `${item.type} x${item.amount}`, {
           fontSize: "18px",
-          color: "#ffffff",
+          color: getRarityColor(rarity),
           backgroundColor: "#222222",
           padding: {
             x: 10,

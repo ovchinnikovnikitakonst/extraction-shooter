@@ -1,6 +1,7 @@
 import * as Phaser from "phaser";
 
 import type { RaidInventory } from "../inventory/raidInventory";
+import { ITEM_CONFIG } from "../inventory/itemConfig";
 
 type InventorySlot = {
   background: Phaser.GameObjects.Rectangle;
@@ -11,11 +12,32 @@ type InventorySlot = {
 type CreateInventoryPanelParams = {
   scene: Phaser.Scene;
   maxSlots: number;
+  onDropItem: (itemIndex: number) => void;
+};
+
+const getRarityColor = (rarity: string) => {
+  switch (rarity) {
+    case "common":
+      return "#ffffff";
+
+    case "uncommon":
+      return "#4ade80";
+
+    case "rare":
+      return "#60a5fa";
+
+    case "epic":
+      return "#c084fc";
+
+    default:
+      return "#ffffff";
+  }
 };
 
 export const createInventoryPanel = ({
   scene,
   maxSlots,
+  onDropItem,
 }: CreateInventoryPanelParams) => {
   const centerX = scene.scale.width / 2;
   const centerY = scene.scale.height / 2;
@@ -88,6 +110,15 @@ export const createInventoryPanel = ({
       .setScrollFactor(0)
       .setDepth(1001);
 
+    slotBackground
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+        if (!pointer.rightButtonDown()) {
+          return;
+        }
+
+        onDropItem(index);
+      });
     const nameText = scene.add
       .text(x, y - 16, "EMPTY", {
         fontSize: "13px",
@@ -133,9 +164,11 @@ export const createInventoryPanel = ({
         continue;
       }
 
+      const rarity = ITEM_CONFIG[item.type].rarity;
+
       slot.nameText.setText(item.type.toUpperCase());
 
-      slot.nameText.setColor("#ffffff");
+      slot.nameText.setColor(getRarityColor(rarity));
 
       slot.amountText.setText(`x${item.amount}`);
 

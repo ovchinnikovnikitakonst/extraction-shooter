@@ -3,7 +3,10 @@ import * as Phaser from "phaser";
 import type { Loot } from "../../entities/loot";
 import type { RaidInventory } from "../../inventory/raidInventory";
 
-import { addItemToInventory } from "../../inventory/raidInventory";
+import {
+  addItemToInventory,
+  getItemAmount,
+} from "../../inventory/raidInventory";
 
 type PickupLootParams = {
   player: Phaser.Physics.Arcade.Sprite;
@@ -40,16 +43,26 @@ export const pickupLoot = ({
     };
   }
 
-  const nextInventory = addItemToInventory(inventory, item.type, 1);
+  const beforeAmount = getItemAmount(inventory, item.type);
 
-  if (nextInventory === inventory) {
+  const nextInventory = addItemToInventory(inventory, item.type, item.amount);
+
+  const afterAmount = getItemAmount(nextInventory, item.type);
+
+  const addedAmount = afterAmount - beforeAmount;
+
+  if (addedAmount <= 0) {
     return {
       inventory,
       pickedUp: false,
     };
   }
 
-  item.sprite.destroy();
+  item.amount -= addedAmount;
+
+  if (item.amount <= 0) {
+    item.sprite.destroy();
+  }
 
   return {
     inventory: nextInventory,

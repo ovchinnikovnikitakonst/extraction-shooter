@@ -65,7 +65,9 @@ export const createLoot = (
   x: number,
   y: number,
   type: ItemType = "scrap",
+  amount = 1,
 ): Loot => ({
   sprite: scene.physics.add.image(x, y, `loot-${type}`),
   type,
+  amount,
 });
