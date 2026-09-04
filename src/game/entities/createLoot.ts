@@ -26,6 +26,17 @@ export const createLootTexture = (scene: Phaser.Scene) => {
     graphics.destroy();
   }
 
+  if (!scene.textures.exists("loot-medkit")) {
+    const graphics = scene.add.graphics();
+
+    graphics.fillStyle(0xff4444);
+    graphics.fillRect(0, 0, 16, 16);
+
+    graphics.generateTexture("loot-medkit", 16, 16);
+
+    graphics.destroy();
+  }
+
   if (!scene.textures.exists("loot-electronics")) {
     const graphics = scene.add.graphics();
 

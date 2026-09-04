@@ -1,4 +1,5 @@
 import type { InventoryItem, ItemType } from "../inventory/types";
+import { ITEM_CONFIG } from "../inventory/itemConfig";
 
 export type StashState = InventoryItem[];
 
@@ -39,4 +40,14 @@ export const addInventoryToStash = (inventory: InventoryItem[]) => {
 
 export const getStashItemAmount = (type: ItemType) => {
   return stashState.find((item) => item.type === type)?.amount ?? 0;
+};
+
+export const sellAllStashItems = () => {
+  const totalValue = stashState.reduce((total, item) => {
+    return total + item.amount * ITEM_CONFIG[item.type].value;
+  }, 0);
+
+  stashState = [];
+
+  return totalValue;
 };
