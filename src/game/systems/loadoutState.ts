@@ -34,3 +34,30 @@ export const addItemToLoadout = (type: ItemType, amount: number) => {
 export const clearLoadout = () => {
   loadoutState = [];
 };
+
+export const removeItemFromLoadout = (type: ItemType, amount: number) => {
+  const item = loadoutState.find((loadoutItem) => loadoutItem.type === type);
+
+  if (!item || item.amount < amount) {
+    return false;
+  }
+
+  if (item.amount === amount) {
+    loadoutState = loadoutState.filter(
+      (loadoutItem) => loadoutItem.type !== type,
+    );
+
+    return true;
+  }
+
+  loadoutState = loadoutState.map((loadoutItem) =>
+    loadoutItem.type === type
+      ? {
+          ...loadoutItem,
+          amount: loadoutItem.amount - amount,
+        }
+      : loadoutItem,
+  );
+
+  return true;
+};
