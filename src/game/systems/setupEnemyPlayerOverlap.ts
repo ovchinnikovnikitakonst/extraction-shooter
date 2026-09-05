@@ -11,10 +11,15 @@ type SetupEnemyPlayerOverlapParams = {
   scene: Phaser.Scene;
   enemy: Enemy;
   player: Phaser.Physics.Arcade.Sprite;
+
+  damage: number;
+
   getPlayerState: () => PlayerState;
   setPlayerState: (state: PlayerState) => void;
+
   getLastHitAt: () => number;
   setLastHitAt: (time: number) => void;
+
   onHealthChange: () => void;
   onPlayerDeath: () => void;
 };
@@ -23,6 +28,7 @@ export const setupEnemyPlayerOverlap = ({
   scene,
   enemy,
   player,
+  damage,
   getPlayerState,
   setPlayerState,
   getLastHitAt,
@@ -39,10 +45,7 @@ export const setupEnemyPlayerOverlap = ({
 
     setLastHitAt(now);
 
-    const nextPlayerState = applyPlayerDamage(
-      getPlayerState(),
-      RAID_CONFIG.enemy.damage,
-    );
+    const nextPlayerState = applyPlayerDamage(getPlayerState(), damage);
 
     setPlayerState(nextPlayerState);
 

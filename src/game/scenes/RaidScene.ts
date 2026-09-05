@@ -34,6 +34,12 @@ import {
   getItemAmount,
 } from "../inventory/raidInventory";
 
+import { getSelectedArmor } from "../armor/armorState";
+
+import { ARMOR_CONFIG } from "../armor/armorConfig";
+
+import type { ArmorConfig, ArmorType } from "../armor/armorConfig";
+
 import type { RaidInventory } from "../inventory/raidInventory";
 import { createInventoryPanel } from "../ui/createInventoryPanel";
 import { stopRaidActors } from "../systems/raid/stopRaidActors";
@@ -99,6 +105,9 @@ export class RaidScene extends Scene {
   private weaponConfig!: WeaponConfig;
   private lastShotAt = 0;
 
+  private selectedArmor: ArmorType | null = null;
+  private armorConfig: ArmorConfig | null = null;
+
   private magazineAmmo = 0;
   private actionKey!: Phaser.Input.Keyboard.Key;
   constructor() {
@@ -111,6 +120,12 @@ export class RaidScene extends Scene {
     this.lootCrates = [];
     this.selectedWeapon = getSelectedWeapon();
     this.weaponConfig = WEAPON_CONFIG[this.selectedWeapon];
+
+    this.selectedArmor = getSelectedArmor();
+
+    this.armorConfig = this.selectedArmor
+      ? ARMOR_CONFIG[this.selectedArmor]
+      : null;
 
     this.magazineAmmo = this.weaponConfig.magazineSize;
     this.activeLootCrate = null;
@@ -191,32 +206,41 @@ export class RaidScene extends Scene {
 
     for (const enemy of this.enemies) {
       setupBulletEnemyOverlap(this, this.bullets, enemy, this.loot);
+      const enemyDamage = this.armorConfig
+        ? RAID_CONFIG.enemy.damage * (1 - this.armorConfig.damageReduction)
+        : RAID_CONFIG.enemy.damage;
 
-      setupEnemyPlayerOverlap({
-        scene: this,
-        enemy,
-        player: this.player,
+      for (const enemy of this.enemies) {
+        setupBulletEnemyOverlap(this, this.bullets, enemy, this.loot);
 
-        getPlayerState: () => this.playerState,
+        setupEnemyPlayerOverlap({
+          scene: this,
+          enemy,
+          player: this.player,
 
-        setPlayerState: (state) => {
-          this.playerState = state;
-        },
+          damage: enemyDamage,
 
-        getLastHitAt: () => this.lastEnemyHitAt,
+          getPlayerState: () => this.playerState,
 
-        setLastHitAt: (time) => {
-          this.lastEnemyHitAt = time;
-        },
+          setPlayerState: (state) => {
+            this.playerState = state;
+          },
 
-        onHealthChange: () => {
-          this.updateHealthHud();
-        },
+          getLastHitAt: () => this.lastEnemyHitAt,
 
-        onPlayerDeath: () => {
-          this.killPlayer();
-        },
-      });
+          setLastHitAt: (time) => {
+            this.lastEnemyHitAt = time;
+          },
+
+          onHealthChange: () => {
+            this.updateHealthHud();
+          },
+
+          onPlayerDeath: () => {
+            this.killPlayer();
+          },
+        });
+      }
     }
     this.setupKeyboard();
     this.setupShooting();
