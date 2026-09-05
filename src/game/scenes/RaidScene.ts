@@ -12,6 +12,12 @@ import { clearLoadout, getLoadoutState } from "../systems/loadoutState";
 import type { Enemy } from "../entities/enemy";
 import type { Loot } from "../entities/loot";
 
+import { getSelectedWeapon } from "../weapons/weaponState";
+
+import { WEAPON_CONFIG } from "../weapons/weaponConfig";
+
+import type { WeaponConfig, WeaponType } from "../weapons/weaponConfig";
+
 import { createRaidEnemies } from "../entities/createRaidEnemies";
 import { createRaidWorld } from "../world/createRaidWorld";
 import { createRaidHud } from "../ui/createRaidHud";
@@ -89,16 +95,24 @@ export class RaidScene extends Scene {
   private lootCrates: LootCrate[] = [];
   private activeLootCrate: LootCrate | null = null;
 
-  private magazineAmmo: number = RAID_CONFIG.weapon.magazineSize;
+  private selectedWeapon!: WeaponType;
+  private weaponConfig!: WeaponConfig;
+  private lastShotAt = 0;
+
+  private magazineAmmo = 0;
   private actionKey!: Phaser.Input.Keyboard.Key;
   constructor() {
     super("RaidScene");
   }
 
   init() {
+    this.lastShotAt = 0;
     this.loot = [];
     this.lootCrates = [];
-    this.magazineAmmo = RAID_CONFIG.weapon.magazineSize;
+    this.selectedWeapon = getSelectedWeapon();
+    this.weaponConfig = WEAPON_CONFIG[this.selectedWeapon];
+
+    this.magazineAmmo = this.weaponConfig.magazineSize;
     this.activeLootCrate = null;
 
     const loadout = getLoadoutState();
@@ -256,6 +270,10 @@ export class RaidScene extends Scene {
     this.updatePlayerMovement();
     this.updatePlayerAim();
 
+    if (this.selectedWeapon === "rifle" && this.input.activePointer.isDown) {
+      this.tryShoot(this.input.activePointer);
+    }
+
     for (const enemy of this.enemies) {
       updateEnemy(enemy, this.player);
     }
@@ -296,31 +314,15 @@ export class RaidScene extends Scene {
 
   private setupShooting() {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this.inventoryOpen || this.activeLootCrate) {
-        return;
-      }
-
-      if (this.raidStatus !== "playing") {
-        return;
-      }
-
-      if (this.inventoryOpen) {
-        return;
-      }
-
       if (!pointer.leftButtonDown()) {
         return;
       }
 
-      if (this.magazineAmmo <= 0) {
+      if (this.selectedWeapon !== "pistol") {
         return;
       }
 
-      shootBullet(this, this.player, this.bullets, pointer);
-
-      this.magazineAmmo -= 1;
-
-      this.updateLootHud();
+      this.tryShoot(pointer);
     });
   }
 
@@ -461,7 +463,7 @@ export class RaidScene extends Scene {
   private reloadWeapon() {
     const result = reloadWeapon({
       magazineAmmo: this.magazineAmmo,
-
+      magazineSize: this.weaponConfig.magazineSize,
       inventory: this.raidInventory,
     });
 
@@ -570,5 +572,39 @@ export class RaidScene extends Scene {
 
     this.updateLootHud();
     this.updateInventoryPanel();
+  }
+
+  private tryShoot(pointer: Phaser.Input.Pointer) {
+    if (
+      this.inventoryOpen ||
+      this.activeLootCrate ||
+      this.raidStatus !== "playing"
+    ) {
+      return;
+    }
+
+    if (this.magazineAmmo <= 0) {
+      return;
+    }
+
+    const now = this.time.now;
+
+    if (now - this.lastShotAt < this.weaponConfig.fireRate) {
+      return;
+    }
+
+    shootBullet(
+      this,
+      this.player,
+      this.bullets,
+      pointer,
+      this.weaponConfig.damage,
+    );
+
+    this.lastShotAt = now;
+
+    this.magazineAmmo -= 1;
+
+    this.updateLootHud();
   }
 }

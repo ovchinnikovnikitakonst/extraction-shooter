@@ -8,6 +8,7 @@ export const shootBullet = (
   player: Phaser.Physics.Arcade.Sprite,
   bullets: Phaser.Physics.Arcade.Group,
   pointer: Phaser.Input.Pointer,
+  damage: number,
 ) => {
   const worldPoint = scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
 
@@ -23,6 +24,8 @@ export const shootBullet = (
     player.y,
     "bullet",
   ) as Phaser.Physics.Arcade.Image;
+
+  bullet.setData("damage", damage);
 
   bullet.setVelocity(
     direction.x * RAID_CONFIG.bullet.speed,

@@ -3,7 +3,6 @@ import * as Phaser from "phaser";
 import type { Enemy } from "../entities/enemy";
 import type { Loot } from "../entities/loot";
 
-import { RAID_CONFIG } from "../config/raidConfig";
 import { createLoot } from "../entities/createLoot";
 
 import { applyDamage, isEnemyDead } from "./enemyState";
@@ -23,7 +22,9 @@ export const setupBulletEnemyOverlap = (
 
     bullet.disableBody(true, true);
 
-    enemy.state = applyDamage(enemy.state, RAID_CONFIG.bullet.damage);
+    const damage = bullet.getData("damage") as number;
+
+    enemy.state = applyDamage(enemy.state, damage);
 
     if (!isEnemyDead(enemy.state)) {
       return;

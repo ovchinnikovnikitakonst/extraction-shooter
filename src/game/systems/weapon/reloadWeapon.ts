@@ -1,5 +1,3 @@
-import { RAID_CONFIG } from "../../config/raidConfig";
-
 import {
   getItemAmount,
   removeItemFromInventory,
@@ -9,15 +7,15 @@ import type { RaidInventory } from "../../inventory/raidInventory";
 
 type ReloadWeaponParams = {
   magazineAmmo: number;
+  magazineSize: number;
   inventory: RaidInventory;
 };
 
 export const reloadWeapon = ({
   magazineAmmo,
+  magazineSize,
   inventory,
 }: ReloadWeaponParams) => {
-  const magazineSize = RAID_CONFIG.weapon.magazineSize;
-
   if (magazineAmmo >= magazineSize) {
     return {
       magazineAmmo,
