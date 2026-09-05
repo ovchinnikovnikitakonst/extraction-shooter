@@ -7,6 +7,8 @@ import { createPlayer } from "../entities/createPlayer";
 import { createBulletTexture } from "../entities/createBulletTexture";
 import { createLootTexture } from "../entities/createLoot";
 
+import { clearLoadout, getLoadoutState } from "../systems/loadoutState";
+
 import type { Enemy } from "../entities/enemy";
 import type { Loot } from "../entities/loot";
 
@@ -99,11 +101,21 @@ export class RaidScene extends Scene {
     this.magazineAmmo = RAID_CONFIG.weapon.magazineSize;
     this.activeLootCrate = null;
 
-    this.raidInventory = addItemToInventory(
-      createRaidInventory(),
+    const loadout = getLoadoutState();
+
+    let startingInventory = loadout.map((item) => ({
+      ...item,
+    }));
+
+    startingInventory = addItemToInventory(
+      startingInventory,
       "ammo",
       RAID_CONFIG.player.startingAmmo,
     );
+
+    this.raidInventory = startingInventory;
+
+    clearLoadout();
     this.inventoryOpen = false;
 
     this.playerState = createPlayerState(RAID_CONFIG.player.hp);

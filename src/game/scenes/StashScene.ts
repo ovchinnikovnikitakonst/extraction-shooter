@@ -4,11 +4,14 @@ import { Scene } from "phaser";
 import {
   addItemToStash,
   getStashItemAmount,
+  removeItemFromStash,
   sellAllStashItems,
   sellStashItem,
 } from "../systems/stashState";
 
 import { addMoney, getMoney, spendMoney } from "../systems/moneyState";
+
+import { addItemToLoadout, getLoadoutState } from "../systems/loadoutState";
 
 import { createInventorySlot } from "../ui/createInventorySlot";
 import { ITEM_CONFIG } from "../inventory/itemConfig";
@@ -50,6 +53,14 @@ export class StashScene extends Scene {
 
     const money = getMoney();
 
+    const loadout = getLoadoutState();
+
+    const loadoutAmmo =
+      loadout.find((item) => item.type === "ammo")?.amount ?? 0;
+
+    const loadoutMedkit =
+      loadout.find((item) => item.type === "medkit")?.amount ?? 0;
+
     const centerX = this.scale.width / 2;
 
     const makeSellable = (
@@ -72,22 +83,22 @@ export class StashScene extends Scene {
     };
 
     this.add
-      .text(centerX, 120, "STASH", {
-        fontSize: "48px",
+      .text(centerX, 70, "STASH", {
+        fontSize: "42px",
         color: "#ffffff",
       })
       .setOrigin(0.5);
 
     this.add
-      .text(centerX, 175, `Total value: $${totalValue}`, {
-        fontSize: "20px",
+      .text(centerX, 115, `Total value: $${totalValue}`, {
+        fontSize: "18px",
         color: "#aaaaaa",
       })
       .setOrigin(0.5);
 
     this.add
-      .text(centerX, 205, `Money: $${money}`, {
-        fontSize: "20px",
+      .text(centerX, 145, `Money: $${money}`, {
+        fontSize: "18px",
         color: "#ffffff",
       })
       .setOrigin(0.5);
@@ -95,7 +106,7 @@ export class StashScene extends Scene {
     const scrapSlot = createInventorySlot({
       scene: this,
       x: centerX - 150,
-      y: 290,
+      y: 230,
       label: "SCRAP",
       amount: scrapAmount,
     });
@@ -103,7 +114,7 @@ export class StashScene extends Scene {
     makeSellable(scrapSlot, "scrap");
 
     this.add
-      .text(centerX - 150, 355, `$${scrapValue}`, {
+      .text(centerX - 150, 295, `$${scrapValue}`, {
         fontSize: "16px",
         color: "#aaaaaa",
       })
@@ -112,7 +123,7 @@ export class StashScene extends Scene {
     const ammoSlot = createInventorySlot({
       scene: this,
       x: centerX,
-      y: 290,
+      y: 230,
       label: "AMMO",
       amount: ammoAmount,
     });
@@ -120,7 +131,7 @@ export class StashScene extends Scene {
     makeSellable(ammoSlot, "ammo");
 
     this.add
-      .text(centerX, 355, `$${ammoValue}`, {
+      .text(centerX, 295, `$${ammoValue}`, {
         fontSize: "16px",
         color: "#aaaaaa",
       })
@@ -129,7 +140,7 @@ export class StashScene extends Scene {
     const medkitSlot = createInventorySlot({
       scene: this,
       x: centerX + 150,
-      y: 290,
+      y: 230,
       label: "MEDKIT",
       amount: medkitAmount,
     });
@@ -137,7 +148,7 @@ export class StashScene extends Scene {
     makeSellable(medkitSlot, "medkit");
 
     this.add
-      .text(centerX + 150, 355, `$${medkitValue}`, {
+      .text(centerX + 150, 295, `$${medkitValue}`, {
         fontSize: "16px",
         color: "#aaaaaa",
       })
@@ -146,7 +157,7 @@ export class StashScene extends Scene {
     const electronicsSlot = createInventorySlot({
       scene: this,
       x: centerX - 150,
-      y: 430,
+      y: 370,
       label: "ELECTRONICS",
       amount: electronicsAmount,
     });
@@ -154,7 +165,7 @@ export class StashScene extends Scene {
     makeSellable(electronicsSlot, "electronics");
 
     this.add
-      .text(centerX - 150, 495, `$${electronicsValue}`, {
+      .text(centerX - 150, 435, `$${electronicsValue}`, {
         fontSize: "16px",
         color: "#aaaaaa",
       })
@@ -163,7 +174,7 @@ export class StashScene extends Scene {
     const foodSlot = createInventorySlot({
       scene: this,
       x: centerX,
-      y: 430,
+      y: 370,
       label: "FOOD",
       amount: foodAmount,
     });
@@ -171,7 +182,7 @@ export class StashScene extends Scene {
     makeSellable(foodSlot, "food");
 
     this.add
-      .text(centerX, 495, `$${foodValue}`, {
+      .text(centerX, 435, `$${foodValue}`, {
         fontSize: "16px",
         color: "#aaaaaa",
       })
@@ -180,7 +191,7 @@ export class StashScene extends Scene {
     const valuableSlot = createInventorySlot({
       scene: this,
       x: centerX + 150,
-      y: 430,
+      y: 370,
       label: "VALUABLE",
       amount: valuableAmount,
     });
@@ -188,20 +199,20 @@ export class StashScene extends Scene {
     makeSellable(valuableSlot, "valuable");
 
     this.add
-      .text(centerX + 150, 495, `$${valuableValue}`, {
+      .text(centerX + 150, 435, `$${valuableValue}`, {
         fontSize: "16px",
         color: "#aaaaaa",
       })
       .setOrigin(0.5);
 
     const sellButton = this.add
-      .text(centerX, 550, "SELL ALL", {
-        fontSize: "20px",
+      .text(centerX, 485, "SELL ALL", {
+        fontSize: "18px",
         color: "#ffffff",
         backgroundColor: "#333333",
         padding: {
-          x: 18,
-          y: 10,
+          x: 16,
+          y: 8,
         },
       })
       .setOrigin(0.5)
@@ -220,21 +231,21 @@ export class StashScene extends Scene {
     });
 
     this.add
-      .text(centerX, 595, "SHOP", {
-        fontSize: "18px",
+      .text(centerX, 525, "SHOP", {
+        fontSize: "16px",
         color: "#888888",
       })
       .setOrigin(0.5);
 
     const buyAmmoButton = this.add
-      .text(centerX - 130, 635, "BUY AMMO x30\n$100", {
-        fontSize: "18px",
+      .text(centerX - 130, 565, "BUY AMMO x30\n$100", {
+        fontSize: "16px",
         color: "#ffffff",
         backgroundColor: "#333333",
         align: "center",
         padding: {
-          x: 14,
-          y: 10,
+          x: 12,
+          y: 8,
         },
       })
       .setOrigin(0.5)
@@ -253,14 +264,14 @@ export class StashScene extends Scene {
     });
 
     const buyMedkitButton = this.add
-      .text(centerX + 130, 635, "BUY MEDKIT x1\n$150", {
-        fontSize: "18px",
+      .text(centerX + 130, 565, "BUY MEDKIT x1\n$150", {
+        fontSize: "16px",
         color: "#ffffff",
         backgroundColor: "#333333",
         align: "center",
         padding: {
-          x: 14,
-          y: 10,
+          x: 12,
+          y: 8,
         },
       })
       .setOrigin(0.5)
@@ -279,8 +290,70 @@ export class StashScene extends Scene {
     });
 
     this.add
-      .text(centerX, 710, "Press R to start raid", {
-        fontSize: "22px",
+      .text(
+        centerX,
+        625,
+        `LOADOUT: Ammo x${loadoutAmmo} | Medkit x${loadoutMedkit}`,
+        {
+          fontSize: "16px",
+          color: "#ffffff",
+        },
+      )
+      .setOrigin(0.5);
+
+    const takeAmmoButton = this.add
+      .text(centerX - 130, 665, "TAKE AMMO x30", {
+        fontSize: "15px",
+        color: "#ffffff",
+        backgroundColor: "#333333",
+        padding: {
+          x: 10,
+          y: 8,
+        },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    takeAmmoButton.on("pointerdown", () => {
+      const removed = removeItemFromStash("ammo", 30);
+
+      if (!removed) {
+        return;
+      }
+
+      addItemToLoadout("ammo", 30);
+
+      this.scene.restart();
+    });
+
+    const takeMedkitButton = this.add
+      .text(centerX + 130, 665, "TAKE MEDKIT x1", {
+        fontSize: "15px",
+        color: "#ffffff",
+        backgroundColor: "#333333",
+        padding: {
+          x: 10,
+          y: 8,
+        },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    takeMedkitButton.on("pointerdown", () => {
+      const removed = removeItemFromStash("medkit", 1);
+
+      if (!removed) {
+        return;
+      }
+
+      addItemToLoadout("medkit", 1);
+
+      this.scene.restart();
+    });
+
+    this.add
+      .text(centerX, 720, "Press R to start raid", {
+        fontSize: "20px",
         color: "#aaaaaa",
       })
       .setOrigin(0.5);

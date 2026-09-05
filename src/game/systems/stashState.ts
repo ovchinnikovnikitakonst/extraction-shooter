@@ -65,3 +65,28 @@ export const sellStashItem = (type: ItemType) => {
 
   return value;
 };
+
+export const removeItemFromStash = (type: ItemType, amount: number) => {
+  const item = stashState.find((stashItem) => stashItem.type === type);
+
+  if (!item || item.amount < amount) {
+    return false;
+  }
+
+  if (item.amount === amount) {
+    stashState = stashState.filter((stashItem) => stashItem.type !== type);
+
+    return true;
+  }
+
+  stashState = stashState.map((stashItem) =>
+    stashItem.type === type
+      ? {
+          ...stashItem,
+          amount: stashItem.amount - amount,
+        }
+      : stashItem,
+  );
+
+  return true;
+};
