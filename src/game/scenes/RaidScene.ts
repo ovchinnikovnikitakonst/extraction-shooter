@@ -61,6 +61,7 @@ import { openLootCrate } from "../systems/loot/openLootCrate";
 import { createLootCratePanel } from "../ui/createLootCratePanel";
 import { createLoot } from "../entities/createLoot";
 import { ENEMY_CONFIG } from "../config/enemyConfig";
+import type { LootCrateType } from "../entities/lootCrate";
 
 export class RaidScene extends Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -157,6 +158,20 @@ export class RaidScene extends Scene {
     this.raidStatus = "playing";
   }
 
+  getRandomLootCrateType = (): LootCrateType => {
+    const roll = Phaser.Math.Between(1, 100);
+
+    if (roll <= 5) {
+      return "military";
+    }
+
+    if (roll <= 30) {
+      return "rare";
+    }
+
+    return "common";
+  };
+
   create() {
     const { width, height } = RAID_CONFIG.world;
 
@@ -182,14 +197,17 @@ export class RaidScene extends Scene {
 
     this.physics.add.collider(this.player, walls);
 
+    const crateCount = Phaser.Math.Between(18, 25);
+
     const crateSpawnPoints = Phaser.Utils.Array.Shuffle([
       ...lootCrateSpawnPoints,
-    ]).slice(0, 5);
+    ]).slice(0, crateCount);
 
-    this.lootCrates = crateSpawnPoints.map((point) =>
-      createLootCrate(this, point.x, point.y),
-    );
+    this.lootCrates = crateSpawnPoints.map((point) => {
+      const type = this.getRandomLootCrateType();
 
+      return createLootCrate(this, point.x, point.y, type);
+    });
     const activeExtractionPoint =
       Phaser.Utils.Array.GetRandom(extractionPoints);
 

@@ -1,9 +1,33 @@
 import * as Phaser from "phaser";
 
-import type { LootCrate } from "./lootCrate";
+import type { LootCrate, LootCrateType } from "./lootCrate";
+
 import type { InventoryItem, ItemType } from "../inventory/types";
-import { ITEM_CONFIG } from "../inventory/itemConfig";
+
 import type { ItemRarity } from "../inventory/itemConfig";
+
+const CRATE_COLORS: Record<
+  LootCrateType,
+  {
+    fill: number;
+    stroke: number;
+  }
+> = {
+  common: {
+    fill: 0x8b5a2b,
+    stroke: 0xd2a679,
+  },
+
+  rare: {
+    fill: 0x3366ff,
+    stroke: 0x99bbff,
+  },
+
+  military: {
+    fill: 0x2e8b57,
+    stroke: 0x7fffaa,
+  },
+};
 
 const RARITY_WEIGHTS: Record<ItemRarity, number> = {
   common: 60,
@@ -12,77 +36,16 @@ const RARITY_WEIGHTS: Record<ItemRarity, number> = {
   epic: 5,
 };
 
-const getRandomRarity = (): ItemRarity => {
-  const roll = Phaser.Math.Between(1, 100);
+const getRandomLootType = (crateType: LootCrateType): ItemType => {
+  const pools: Record<LootCrateType, ItemType[]> = {
+    common: ["scrap", "ammo", "food", "medkit"],
 
-  if (roll <= RARITY_WEIGHTS.common) {
-    return "common";
-  }
+    rare: ["ammo", "medkit", "electronics", "valuable", "scrap"],
 
-  if (roll <= RARITY_WEIGHTS.common + RARITY_WEIGHTS.uncommon) {
-    return "uncommon";
-  }
-
-  if (
-    roll <=
-    RARITY_WEIGHTS.common + RARITY_WEIGHTS.uncommon + RARITY_WEIGHTS.rare
-  ) {
-    return "rare";
-  }
-
-  return "epic";
-};
-
-const getRandomLootType = (): ItemType => {
-  const rarity = getRandomRarity();
-
-  const availableTypes = (Object.keys(ITEM_CONFIG) as ItemType[]).filter(
-    (type) => ITEM_CONFIG[type].rarity === rarity,
-  );
-
-  return Phaser.Utils.Array.GetRandom(availableTypes);
-};
-
-const createLootCrateItems = (): InventoryItem[] => {
-  const itemCount = Phaser.Math.Between(1, 3);
-
-  const items: InventoryItem[] = [];
-
-  for (let i = 0; i < itemCount; i += 1) {
-    const type = getRandomLootType();
-
-    const existingItem = items.find((item) => item.type === type);
-
-    const amount = getRandomItemAmount(type);
-
-    if (existingItem) {
-      existingItem.amount += amount;
-      continue;
-    }
-
-    items.push({
-      type,
-      amount,
-    });
-  }
-
-  return items;
-};
-
-export const createLootCrate = (
-  scene: Phaser.Scene,
-  x: number,
-  y: number,
-): LootCrate => {
-  const sprite = scene.add
-    .rectangle(x, y, 48, 48, 0x8b5a2b, 1)
-    .setStrokeStyle(2, 0xd2a679);
-
-  return {
-    sprite,
-    opened: false,
-    items: createLootCrateItems(),
+    military: ["ammo", "medkit", "electronics", "valuable"],
   };
+
+  return Phaser.Utils.Array.GetRandom(pools[crateType]);
 };
 
 const getRandomItemAmount = (type: ItemType) => {
@@ -105,4 +68,64 @@ const getRandomItemAmount = (type: ItemType) => {
     case "valuable":
       return 1;
   }
+};
+
+const getItemCount = (crateType: LootCrateType) => {
+  switch (crateType) {
+    case "common":
+      return Phaser.Math.Between(1, 2);
+
+    case "rare":
+      return Phaser.Math.Between(2, 4);
+
+    case "military":
+      return Phaser.Math.Between(3, 5);
+  }
+};
+
+const createLootCrateItems = (crateType: LootCrateType): InventoryItem[] => {
+  const itemCount = getItemCount(crateType);
+
+  const items: InventoryItem[] = [];
+
+  for (let i = 0; i < itemCount; i += 1) {
+    const type = getRandomLootType(crateType);
+
+    const existingItem = items.find((item) => item.type === type);
+
+    const amount = getRandomItemAmount(type);
+
+    if (existingItem) {
+      existingItem.amount += amount;
+
+      continue;
+    }
+
+    items.push({
+      type,
+      amount,
+    });
+  }
+
+  return items;
+};
+
+export const createLootCrate = (
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  type: LootCrateType = "common",
+): LootCrate => {
+  const colors = CRATE_COLORS[type];
+
+  const sprite = scene.add
+    .rectangle(x, y, 48, 48, colors.fill, 1)
+    .setStrokeStyle(2, colors.stroke);
+
+  return {
+    sprite,
+    opened: false,
+    items: createLootCrateItems(type),
+    type,
+  };
 };

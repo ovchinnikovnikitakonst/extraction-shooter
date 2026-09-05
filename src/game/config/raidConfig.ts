@@ -49,7 +49,7 @@ export const RAID_CONFIG = {
   },
 
   inventory: {
-    maxSlots: 6,
+    maxSlots: 12,
   },
 
   lootCrate: {

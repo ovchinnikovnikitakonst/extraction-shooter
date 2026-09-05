@@ -2,7 +2,7 @@ export type EnemyType = "normal" | "fast" | "tank";
 
 export const ENEMY_CONFIG = {
   normal: {
-    hp: 3,
+    hp: 60,
     speed: 100,
     damage: 10,
     color: 0xff3333,
@@ -10,7 +10,7 @@ export const ENEMY_CONFIG = {
   },
 
   fast: {
-    hp: 2,
+    hp: 35,
     speed: 180,
     damage: 7,
     color: 0xffff33,
@@ -18,7 +18,7 @@ export const ENEMY_CONFIG = {
   },
 
   tank: {
-    hp: 12,
+    hp: 180,
     speed: 60,
     damage: 20,
     color: 0x9933ff,
