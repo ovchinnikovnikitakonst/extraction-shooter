@@ -48,6 +48,8 @@ import { createPlayerState } from "../systems/playerState";
 
 import { getMovementVelocity } from "../systems/playerMovement";
 
+import { createRaidMaze } from "../world/createRaidMaze";
+
 import { reloadWeapon } from "../systems/weapon/reloadWeapon";
 
 import { useMedkit } from "../systems/player/useMedkit";
@@ -158,9 +160,12 @@ export class RaidScene extends Scene {
   create() {
     const { width, height } = RAID_CONFIG.world;
 
-    const { extractionZone } = createRaidWorld(this);
+    this.physics.world.setBounds(0, 0, width, height);
 
-    this.extractionZone = extractionZone;
+    this.cameras.main.setBounds(0, 0, width, height);
+
+    const { walls, extractionPoints, lootCrateSpawnPoints } =
+      createRaidMaze(this);
 
     createBulletTexture(this);
     createLootTexture(this);
@@ -171,11 +176,37 @@ export class RaidScene extends Scene {
 
     this.player = createPlayer(this, spawn.x, spawn.y);
 
-    this.lootCrates = [
-      createLootCrate(this, 600, 500),
-      createLootCrate(this, 1200, 900),
-      createLootCrate(this, 1600, 1500),
-    ];
+    this.physics.add.collider(this.player, walls);
+
+    const crateSpawnPoints = Phaser.Utils.Array.Shuffle([
+      ...lootCrateSpawnPoints,
+    ]).slice(0, 5);
+
+    this.lootCrates = crateSpawnPoints.map((point) =>
+      createLootCrate(this, point.x, point.y),
+    );
+
+    const activeExtractionPoint =
+      Phaser.Utils.Array.GetRandom(extractionPoints);
+
+    for (const point of extractionPoints) {
+      const isActive = point === activeExtractionPoint;
+
+      const zone = this.add.rectangle(
+        point.x,
+        point.y,
+        RAID_CONFIG.extraction.size,
+        RAID_CONFIG.extraction.size,
+        isActive ? 0x00ff00 : 0xff0000,
+        0.3,
+      );
+
+      zone.setStrokeStyle(4, isActive ? 0x00ff00 : 0xff0000);
+
+      if (isActive) {
+        this.extractionZone = zone;
+      }
+    }
 
     const hud = createRaidHud(this);
 
@@ -246,6 +277,19 @@ export class RaidScene extends Scene {
     this.setupShooting();
 
     this.cameras.main.startFollow(this.player);
+
+    // камера
+    // const camera = this.cameras.main;
+
+    // camera.stopFollow();
+
+    // camera.setBounds(0, 0, width, height);
+
+    // const zoom = Math.min(camera.width / width, camera.height / height) * 0.95;
+
+    // camera.setZoom(zoom);
+
+    // camera.centerOn(width / 2, height / 2);
 
     this.cameras.main.setBounds(0, 0, width, height);
   }

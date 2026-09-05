@@ -1,14 +1,14 @@
 export const RAID_CONFIG = {
   world: {
-    width: 2000,
-    height: 2000,
-    gridSize: 200,
+    width: 10000,
+    height: 10000,
+    gridSize: 100,
   },
 
   player: {
     spawn: {
-      x: 200,
-      y: 200,
+      x: 600,
+      y: 600,
     },
     speed: 250,
     hp: 100,
