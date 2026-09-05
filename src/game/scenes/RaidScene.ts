@@ -60,6 +60,7 @@ import { createLootCrate } from "../entities/createLootCrate";
 import { openLootCrate } from "../systems/loot/openLootCrate";
 import { createLootCratePanel } from "../ui/createLootCratePanel";
 import { createLoot } from "../entities/createLoot";
+import { ENEMY_CONFIG } from "../config/enemyConfig";
 
 export class RaidScene extends Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -242,12 +243,14 @@ export class RaidScene extends Scene {
       this.physics.add.collider(enemy.sprite, walls);
     }
 
-    const enemyDamage = this.armorConfig
-      ? RAID_CONFIG.enemy.damage * (1 - this.armorConfig.damageReduction)
-      : RAID_CONFIG.enemy.damage;
-
     for (const enemy of this.enemies) {
       setupBulletEnemyOverlap(this, this.bullets, enemy, this.loot);
+
+      const baseDamage = ENEMY_CONFIG[enemy.type].damage;
+
+      const enemyDamage = this.armorConfig
+        ? baseDamage * (1 - this.armorConfig.damageReduction)
+        : baseDamage;
 
       setupEnemyPlayerOverlap({
         scene: this,

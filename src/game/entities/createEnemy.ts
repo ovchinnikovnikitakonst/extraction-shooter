@@ -1,14 +1,28 @@
 import * as Phaser from "phaser";
 
-export const createEnemy = (scene: Phaser.Scene, x: number, y: number) => {
-  const graphics = scene.add.graphics();
+import { ENEMY_CONFIG, type EnemyType } from "../config/enemyConfig";
 
-  graphics.fillStyle(0xff3333);
-  graphics.fillRect(0, 0, 40, 40);
+export const createEnemy = (
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  type: EnemyType,
+) => {
+  const config = ENEMY_CONFIG[type];
 
-  graphics.generateTexture("enemy", 40, 40);
+  const textureKey = `enemy-${type}`;
 
-  graphics.destroy();
+  if (!scene.textures.exists(textureKey)) {
+    const graphics = scene.add.graphics();
 
-  return scene.physics.add.sprite(x, y, "enemy");
+    graphics.fillStyle(config.color);
+
+    graphics.fillRect(0, 0, config.size, config.size);
+
+    graphics.generateTexture(textureKey, config.size, config.size);
+
+    graphics.destroy();
+  }
+
+  return scene.physics.add.sprite(x, y, textureKey);
 };

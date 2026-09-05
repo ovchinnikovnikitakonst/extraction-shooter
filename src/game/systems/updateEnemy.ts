@@ -1,7 +1,10 @@
 import * as Phaser from "phaser";
 
 import type { Enemy } from "../entities/enemy";
+
 import { RAID_CONFIG } from "../config/raidConfig";
+import { ENEMY_CONFIG } from "../config/enemyConfig";
+
 import { getEnemyVelocity } from "./enemyMovement";
 
 export const updateEnemy = (
@@ -19,7 +22,9 @@ export const updateEnemy = (
     player.y,
   );
 
-  const { aggroDistance, loseAggroDistance, speed } = RAID_CONFIG.enemy;
+  const { aggroDistance, loseAggroDistance } = RAID_CONFIG.enemy;
+
+  const config = ENEMY_CONFIG[enemy.type];
 
   if (distanceToPlayer <= aggroDistance) {
     enemy.aggro = true;
@@ -31,6 +36,7 @@ export const updateEnemy = (
 
   if (!enemy.aggro) {
     enemy.sprite.setVelocity(0, 0);
+
     return;
   }
 
@@ -39,7 +45,7 @@ export const updateEnemy = (
     enemy.sprite.y,
     player.x,
     player.y,
-    speed,
+    config.speed,
   );
 
   enemy.sprite.setVelocity(velocity.x, velocity.y);
