@@ -10,6 +10,7 @@ import { getEnemyVelocity } from "./enemyMovement";
 export const updateEnemy = (
   enemy: Enemy,
   player: Phaser.Physics.Arcade.Sprite,
+  enemies: Enemy[],
 ) => {
   if (!enemy.sprite.active) {
     return;
@@ -28,9 +29,17 @@ export const updateEnemy = (
 
   if (distanceToPlayer <= aggroDistance) {
     enemy.aggro = true;
+
+    if (enemy.groupId !== undefined) {
+      for (const groupEnemy of enemies) {
+        if (groupEnemy.groupId === enemy.groupId) {
+          groupEnemy.aggro = true;
+        }
+      }
+    }
   }
 
-  if (distanceToPlayer >= loseAggroDistance) {
+  if (distanceToPlayer >= loseAggroDistance && enemy.groupId === undefined) {
     enemy.aggro = false;
   }
 

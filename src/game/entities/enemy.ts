@@ -8,4 +8,5 @@ export type Enemy = {
   state: EnemyState;
   aggro: boolean;
   type: EnemyType;
+  groupId?: number;
 };

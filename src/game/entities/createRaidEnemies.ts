@@ -3,7 +3,6 @@ import * as Phaser from "phaser";
 import { createEnemy } from "./createEnemy";
 import type { Enemy } from "./enemy";
 
-import { RAID_CONFIG } from "../config/raidConfig";
 import { createEnemyState } from "../systems/enemyState";
 
 import { ENEMY_CONFIG, type EnemyType } from "../config/enemyConfig";
@@ -39,7 +38,12 @@ const getRandomEnemyType = (): EnemyType => {
   return "normal";
 };
 
-const createEnemyAt = (scene: Phaser.Scene, x: number, y: number): Enemy => {
+const createEnemyAt = (
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  groupId?: number,
+): Enemy => {
   const type = getRandomEnemyType();
 
   const config = ENEMY_CONFIG[type];
@@ -52,6 +56,8 @@ const createEnemyAt = (scene: Phaser.Scene, x: number, y: number): Enemy => {
     aggro: false,
 
     type,
+
+    groupId,
   };
 };
 
@@ -241,13 +247,17 @@ export const createRaidEnemies = (
     ...largeSpawnAreas,
   ]).slice(0, 3);
 
+  let nextGroupId = 1;
+
   for (const area of selectedLargeSpawnAreas) {
+    const groupId = nextGroupId++;
+
     const enemyCount = Phaser.Math.Between(45, 60);
 
     const spawnPoints = createSpawnPoints(area, enemyCount, isWalkablePoint);
 
     for (const point of spawnPoints) {
-      enemies.push(createEnemyAt(scene, point.x, point.y));
+      enemies.push(createEnemyAt(scene, point.x, point.y, groupId));
     }
   }
 

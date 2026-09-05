@@ -284,19 +284,26 @@ export class RaidScene extends Scene {
     this.setupKeyboard();
     this.setupShooting();
 
-    // CAMERA DEBUG — вся карта целиком
-
     const camera = this.cameras.main;
-
-    camera.stopFollow();
 
     camera.setBounds(0, 0, width, height);
 
-    const zoom = Math.min(camera.width / width, camera.height / height) * 0.95;
+    camera.setZoom(1);
 
-    camera.setZoom(zoom);
+    camera.startFollow(this.player, true, 1, 1);
+    // CAMERA DEBUG — вся карта целиком
 
-    camera.centerOn(width / 2, height / 2);
+    // const camera = this.cameras.main;
+
+    // camera.stopFollow();
+
+    // camera.setBounds(0, 0, width, height);
+
+    // const zoom = Math.min(camera.width / width, camera.height / height) * 0.95;
+
+    // camera.setZoom(zoom);
+
+    // camera.centerOn(width / 2, height / 2);
   }
 
   update() {
@@ -348,7 +355,7 @@ export class RaidScene extends Scene {
     }
 
     for (const enemy of this.enemies) {
-      updateEnemy(enemy, this.player);
+      updateEnemy(enemy, this.player, this.enemies);
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
