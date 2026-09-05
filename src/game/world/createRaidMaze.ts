@@ -11,6 +11,7 @@ type RaidMazeResult = {
   walls: Phaser.Physics.Arcade.StaticGroup;
   extractionPoints: Point[];
   lootCrateSpawnPoints: Point[];
+  isWalkablePoint: (x: number, y: number) => boolean;
 };
 
 type Rect = {
@@ -454,6 +455,14 @@ export const createRaidMaze = (scene: Phaser.Scene): RaidMazeResult => {
     return floor[row][column];
   };
 
+  const isWalkablePoint = (x: number, y: number): boolean => {
+    const column = Math.floor(x / GRID_SIZE);
+
+    const row = Math.floor(y / GRID_SIZE);
+
+    return isFloor(row, column);
+  };
+
   // =========================================================
   // AUTOMATIC WALL GENERATION
   // =========================================================
@@ -598,5 +607,6 @@ export const createRaidMaze = (scene: Phaser.Scene): RaidMazeResult => {
     walls,
     extractionPoints,
     lootCrateSpawnPoints,
+    isWalkablePoint,
   };
 };

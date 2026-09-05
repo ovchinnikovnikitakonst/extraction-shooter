@@ -19,7 +19,6 @@ import { WEAPON_CONFIG } from "../weapons/weaponConfig";
 import type { WeaponConfig, WeaponType } from "../weapons/weaponConfig";
 
 import { createRaidEnemies } from "../entities/createRaidEnemies";
-import { createRaidWorld } from "../world/createRaidWorld";
 import { createRaidHud } from "../ui/createRaidHud";
 import { updateEnemy } from "../systems/updateEnemy";
 import { shootBullet } from "../systems/shootBullet";
@@ -164,13 +163,17 @@ export class RaidScene extends Scene {
 
     this.cameras.main.setBounds(0, 0, width, height);
 
-    const { walls, extractionPoints, lootCrateSpawnPoints } =
+    const { walls, extractionPoints, lootCrateSpawnPoints, isWalkablePoint } =
       createRaidMaze(this);
 
     createBulletTexture(this);
     createLootTexture(this);
 
     this.bullets = this.physics.add.group();
+
+    this.physics.add.collider(this.bullets, walls, (bullet) => {
+      bullet.destroy();
+    });
 
     const spawn = RAID_CONFIG.player.spawn;
 
@@ -233,65 +236,64 @@ export class RaidScene extends Scene {
       },
     });
 
-    this.enemies = createRaidEnemies(this);
+    this.enemies = createRaidEnemies(this, isWalkablePoint);
+
+    for (const enemy of this.enemies) {
+      this.physics.add.collider(enemy.sprite, walls);
+    }
+
+    const enemyDamage = this.armorConfig
+      ? RAID_CONFIG.enemy.damage * (1 - this.armorConfig.damageReduction)
+      : RAID_CONFIG.enemy.damage;
 
     for (const enemy of this.enemies) {
       setupBulletEnemyOverlap(this, this.bullets, enemy, this.loot);
-      const enemyDamage = this.armorConfig
-        ? RAID_CONFIG.enemy.damage * (1 - this.armorConfig.damageReduction)
-        : RAID_CONFIG.enemy.damage;
 
-      for (const enemy of this.enemies) {
-        setupBulletEnemyOverlap(this, this.bullets, enemy, this.loot);
+      setupEnemyPlayerOverlap({
+        scene: this,
+        enemy,
+        player: this.player,
 
-        setupEnemyPlayerOverlap({
-          scene: this,
-          enemy,
-          player: this.player,
+        damage: enemyDamage,
 
-          damage: enemyDamage,
+        getPlayerState: () => this.playerState,
 
-          getPlayerState: () => this.playerState,
+        setPlayerState: (state) => {
+          this.playerState = state;
+        },
 
-          setPlayerState: (state) => {
-            this.playerState = state;
-          },
+        getLastHitAt: () => this.lastEnemyHitAt,
 
-          getLastHitAt: () => this.lastEnemyHitAt,
+        setLastHitAt: (time) => {
+          this.lastEnemyHitAt = time;
+        },
 
-          setLastHitAt: (time) => {
-            this.lastEnemyHitAt = time;
-          },
+        onHealthChange: () => {
+          this.updateHealthHud();
+        },
 
-          onHealthChange: () => {
-            this.updateHealthHud();
-          },
-
-          onPlayerDeath: () => {
-            this.killPlayer();
-          },
-        });
-      }
+        onPlayerDeath: () => {
+          this.killPlayer();
+        },
+      });
     }
+
     this.setupKeyboard();
     this.setupShooting();
 
-    this.cameras.main.startFollow(this.player);
+    // CAMERA DEBUG — вся карта целиком
 
-    // камера
-    // const camera = this.cameras.main;
+    const camera = this.cameras.main;
 
-    // camera.stopFollow();
+    camera.stopFollow();
 
-    // camera.setBounds(0, 0, width, height);
+    camera.setBounds(0, 0, width, height);
 
-    // const zoom = Math.min(camera.width / width, camera.height / height) * 0.95;
+    const zoom = Math.min(camera.width / width, camera.height / height) * 0.95;
 
-    // camera.setZoom(zoom);
+    camera.setZoom(zoom);
 
-    // camera.centerOn(width / 2, height / 2);
-
-    this.cameras.main.setBounds(0, 0, width, height);
+    camera.centerOn(width / 2, height / 2);
   }
 
   update() {
