@@ -23,6 +23,7 @@ type Rect = {
 
 const GRID_SIZE = 100;
 const WALL_THICKNESS = 10;
+const MAP_UNIT = GRID_SIZE * 4;
 
 export const createRaidMaze = (scene: Phaser.Scene): RaidMazeResult => {
   const worldWidth = RAID_CONFIG.world.width;
@@ -58,361 +59,322 @@ export const createRaidMaze = (scene: Phaser.Scene): RaidMazeResult => {
     }
   };
 
+  const markUnitRect = (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) => {
+    markRect({
+      x: x * MAP_UNIT,
+      y: y * MAP_UNIT,
+      width: width * MAP_UNIT,
+      height: height * MAP_UNIT,
+    });
+  };
+
   // =========================================================
   // START AREA
   // =========================================================
 
-  markRect({
-    x: 300,
-    y: 300,
-    width: 900,
-    height: 900,
-  });
+  markUnitRect(1, 1, 2, 2);
 
   // =========================================================
   // START -> STORAGE
   // =========================================================
 
-  markRect({
-    x: 900,
-    y: 650,
-    width: 700,
-    height: 400,
-  });
+  markUnitRect(2, 2, 2, 1);
 
   // =========================================================
   // STORAGE A
   // =========================================================
 
-  markRect({
-    x: 1200,
-    y: 500,
-    width: 1600,
-    height: 1300,
-  });
+  markUnitRect(3, 1, 4, 4);
 
   // внутренняя боковая секция
-  markRect({
-    x: 1900,
-    y: 1500,
-    width: 700,
-    height: 700,
-  });
+  markUnitRect(5, 4, 2, 2);
 
   // =========================================================
   // STORAGE -> FACTORY
   // =========================================================
 
-  markRect({
-    x: 2200,
-    y: 1500,
-    width: 700,
-    height: 1100,
-  });
+  markUnitRect(6, 4, 2, 3);
 
-  markRect({
-    x: 2500,
-    y: 2200,
-    width: 900,
-    height: 500,
-  });
+  markUnitRect(7, 6, 2, 1);
 
   // =========================================================
   // FACTORY HALL
-  // большая асимметричная зона
   // =========================================================
 
-  markRect({
-    x: 2800,
-    y: 1700,
-    width: 3000,
-    height: 2100,
-  });
+  markUnitRect(7, 4, 8, 6);
 
   // левая нижняя секция
-  markRect({
-    x: 2400,
-    y: 2700,
-    width: 1100,
-    height: 1200,
-  });
+  markUnitRect(6, 7, 3, 3);
 
   // верхний выступ
-  markRect({
-    x: 3600,
-    y: 1300,
-    width: 1500,
-    height: 700,
-  });
+  markUnitRect(9, 3, 4, 2);
 
   // правый выступ
-  markRect({
-    x: 5300,
-    y: 2300,
-    width: 900,
-    height: 1000,
-  });
+  markUnitRect(14, 6, 2, 3);
 
-  // Factory dead-end room
-  markRect({
-    x: 1200,
-    y: 2900,
-    width: 1200,
-    height: 900,
-  });
+  // =========================================================
+  // FACTORY DEAD END
+  // =========================================================
 
-  markRect({
-    x: 2200,
-    y: 3150,
-    width: 500,
-    height: 400,
-  });
+  markUnitRect(3, 7, 3, 3);
+
+  markUnitRect(5, 8, 2, 1);
 
   // =========================================================
   // FACTORY -> UNDERGROUND
   // =========================================================
 
-  markRect({
-    x: 3000,
-    y: 3600,
-    width: 500,
-    height: 1300,
-  });
+  markUnitRect(7, 9, 2, 3);
 
   // =========================================================
   // UNDERGROUND
-  // длинный Г-образный маршрут
   // =========================================================
 
-  markRect({
-    x: 1800,
-    y: 4300,
-    width: 1700,
-    height: 600,
-  });
+  // верхняя горизонтальная часть
+  markUnitRect(4, 11, 5, 2);
 
-  markRect({
-    x: 1400,
-    y: 4300,
-    width: 600,
-    height: 2200,
-  });
+  // вертикальная часть
+  markUnitRect(3, 11, 2, 6);
 
-  markRect({
-    x: 1400,
-    y: 5900,
-    width: 1800,
-    height: 600,
-  });
+  // нижняя горизонтальная часть
+  markUnitRect(3, 15, 5, 2);
 
-  markRect({
-    x: 2700,
-    y: 5700,
-    width: 600,
-    height: 900,
-  });
+  // правый участок
+  markUnitRect(7, 14, 2, 3);
 
   // боковой тупик
-  markRect({
-    x: 500,
-    y: 5000,
-    width: 1100,
-    height: 600,
-  });
+  markUnitRect(1, 13, 3, 2);
 
   // =========================================================
   // DEAD END A
   // =========================================================
 
-  markRect({
-    x: 500,
-    y: 6500,
-    width: 1400,
-    height: 1200,
-  });
+  markUnitRect(1, 17, 4, 3);
 
-  markRect({
-    x: 1400,
-    y: 6200,
-    width: 500,
-    height: 700,
-  });
+  markUnitRect(3, 16, 2, 2);
 
   // =========================================================
   // FACTORY -> ADMIN
   // =========================================================
 
-  markRect({
-    x: 5600,
-    y: 2400,
-    width: 900,
-    height: 600,
-  });
+  markUnitRect(14, 6, 2, 2);
 
   // =========================================================
   // ADMIN BUILDING
   // =========================================================
 
-  markRect({
-    x: 6200,
-    y: 2100,
-    width: 2300,
-    height: 2600,
-  });
+  markUnitRect(16, 5, 6, 7);
 
   // верхнее крыло
-  markRect({
-    x: 6800,
-    y: 1600,
-    width: 1200,
-    height: 700,
-  });
+  markUnitRect(17, 4, 3, 2);
 
   // правое крыло
-  markRect({
-    x: 8100,
-    y: 2800,
-    width: 1000,
-    height: 1500,
-  });
+  markUnitRect(20, 7, 3, 4);
 
   // нижнее крыло
-  markRect({
-    x: 6600,
-    y: 4400,
-    width: 1300,
-    height: 900,
-  });
+  markUnitRect(16, 11, 4, 2);
 
   // =========================================================
   // SECURITY
   // =========================================================
 
-  markRect({
-    x: 8000,
-    y: 4700,
-    width: 1200,
-    height: 1100,
-  });
+  markUnitRect(20, 12, 3, 3);
 
-  markRect({
-    x: 8900,
-    y: 5000,
-    width: 700,
-    height: 500,
-  });
+  markUnitRect(22, 13, 2, 1);
 
   // =========================================================
   // ADMIN -> LOADING
   // =========================================================
 
-  markRect({
-    x: 7000,
-    y: 5000,
-    width: 600,
-    height: 1600,
-  });
+  markUnitRect(17, 12, 2, 4);
 
-  markRect({
-    x: 6300,
-    y: 6000,
-    width: 1200,
-    height: 600,
-  });
+  markUnitRect(16, 15, 3, 2);
 
   // =========================================================
   // UNDERGROUND -> LOADING
-  // длинный соединительный маршрут
   // =========================================================
 
-  markRect({
-    x: 3000,
-    y: 6100,
-    width: 2300,
-    height: 600,
-  });
+  markUnitRect(7, 15, 6, 2);
 
   // =========================================================
   // LOADING YARD
-  // большая неровная зона
   // =========================================================
 
-  markRect({
-    x: 4500,
-    y: 6000,
-    width: 3300,
-    height: 2200,
-  });
+  markUnitRect(11, 15, 9, 6);
 
   // левый выступ
-  markRect({
-    x: 4000,
-    y: 6600,
-    width: 900,
-    height: 1100,
-  });
+  markUnitRect(10, 17, 2, 3);
 
   // правый выступ
-  markRect({
-    x: 7600,
-    y: 6500,
-    width: 1000,
-    height: 1000,
-  });
+  markUnitRect(19, 16, 3, 3);
 
   // нижний выступ
-  markRect({
-    x: 5200,
-    y: 7900,
-    width: 1700,
-    height: 700,
-  });
+  markUnitRect(13, 20, 5, 2);
 
   // =========================================================
   // LOADING -> SECRET
   // =========================================================
 
-  markRect({
-    x: 5700,
-    y: 8000,
-    width: 700,
-    height: 700,
-  });
+  markUnitRect(14, 20, 2, 2);
 
   // =========================================================
   // SECRET AREA
   // =========================================================
 
-  markRect({
-    x: 5000,
-    y: 8500,
-    width: 2200,
-    height: 1100,
-  });
+  markUnitRect(12, 21, 6, 3);
 
   // левая секция
-  markRect({
-    x: 4600,
-    y: 8700,
-    width: 800,
-    height: 700,
-  });
+  markUnitRect(11, 22, 2, 2);
 
   // правая секция
-  markRect({
-    x: 6900,
-    y: 8800,
-    width: 900,
-    height: 700,
-  });
+  markUnitRect(17, 22, 3, 2);
 
-  // нижняя часть к Exit B
-  markRect({
-    x: 5800,
-    y: 9400,
-    width: 700,
-    height: 500,
-  });
+  // нижняя часть к EXIT B
+  markUnitRect(14, 23, 2, 2);
+  // =========================================================
+  // FLOOR
+  // =========================================================
+
+  const getRandomFloorTexture = () => {
+    const roll = Phaser.Math.Between(1, 100);
+
+    if (roll <= 35) {
+      return "raid-floor-1";
+    }
+
+    if (roll <= 65) {
+      return "raid-floor-2";
+    }
+
+    if (roll <= 85) {
+      return "raid-floor-3";
+    }
+
+    if (roll <= 95) {
+      return "raid-floor-rust-1";
+    }
+
+    return "raid-floor-rust-2";
+  };
+
+  const renderedFloorCells = Array.from({ length: rows }, () =>
+    Array(columns).fill(false),
+  );
+
+  const canPlaceFloorTile = (
+    row: number,
+    column: number,
+    sizeInCells: number,
+  ) => {
+    if (row + sizeInCells > rows || column + sizeInCells > columns) {
+      return false;
+    }
+
+    for (let y = row; y < row + sizeInCells; y++) {
+      for (let x = column; x < column + sizeInCells; x++) {
+        if (!floor[y][x] || renderedFloorCells[y][x]) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  };
+
+  const placeFloorTile = (row: number, column: number, sizeInCells: number) => {
+    const texture = getRandomFloorTexture();
+
+    const pixelSize = GRID_SIZE * sizeInCells;
+
+    scene.add
+      .image(
+        column * GRID_SIZE + pixelSize / 2,
+        row * GRID_SIZE + pixelSize / 2,
+        texture,
+      )
+      .setDisplaySize(pixelSize, pixelSize)
+      .setDepth(-10);
+
+    for (let y = row; y < row + sizeInCells; y++) {
+      for (let x = column; x < column + sizeInCells; x++) {
+        renderedFloorCells[y][x] = true;
+      }
+    }
+  };
+
+  // 1) большие куски 4x4
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      if (canPlaceFloorTile(row, column, 4)) {
+        placeFloorTile(row, column, 4);
+      }
+    }
+  }
+
+  // 2) средние 2x2
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      if (canPlaceFloorTile(row, column, 2)) {
+        placeFloorTile(row, column, 2);
+      }
+    }
+  }
+
+  // 3) остатки 1x1
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      if (canPlaceFloorTile(row, column, 1)) {
+        placeFloorTile(row, column, 1);
+      }
+    }
+  }
+
+  // =========================================================
+  // BLOOD DECALS
+  // =========================================================
+
+  const bloodTextures = ["blood-1", "blood-2", "blood-3", "blood-4", "blood-5"];
+
+  const getRandomBloodTexture = () => {
+    return Phaser.Utils.Array.GetRandom(bloodTextures);
+  };
+
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      if (!floor[row][column]) {
+        continue;
+      }
+
+      const shouldPlaceBlood = Phaser.Math.Between(1, 100) <= 7;
+
+      if (!shouldPlaceBlood) {
+        continue;
+      }
+
+      const texture = getRandomBloodTexture();
+
+      const x =
+        column * GRID_SIZE + GRID_SIZE / 2 + Phaser.Math.Between(-20, 20);
+
+      const y = row * GRID_SIZE + GRID_SIZE / 2 + Phaser.Math.Between(-20, 20);
+
+      const rotation = Phaser.Math.FloatBetween(0, Math.PI * 2);
+
+      const scale = Phaser.Math.FloatBetween(0.55, 0.9);
+
+      scene.add
+        .image(x, y, texture)
+        .setRotation(rotation)
+        .setScale(scale)
+        .setAlpha(0.75)
+        .setDepth(-9);
+    }
+  }
 
   // =========================================================
   // WALL TEXTURES
